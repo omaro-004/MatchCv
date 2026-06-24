@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription entreprise{% endblock %}
+
+{% block body %}
+    <h1>Inscription entreprise</h1>
+
+    {{ form_start(form) }}
+        {{ form_widget(form) }}
+        <button type="submit">Créer mon compte entreprise</button>
+    {{ form_end(form) }}
+{% endblock %}

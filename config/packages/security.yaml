@@ -1,0 +1,36 @@
+# config/packages/security.yaml
+security:
+  password_hashers:
+    App\Entity\User:
+      algorithm: bcrypt
+      cost: 12           # Exigence RM-U02 : coût bcrypt ≥ 12
+
+  providers:
+    app_user_provider:
+      entity:
+        class: App\Entity\User
+        property: email
+
+  firewalls:
+    main:
+      lazy: true
+      provider: app_user_provider
+      form_login:
+        login_path: app_login
+        check_path: app_login
+        default_target_path: app_dashboard_redirect
+      logout:
+        path: app_logout
+      remember_me:
+        secret: '%kernel.secret%'
+        lifetime: 1800     # 30 min — exigence spec technique
+      login_throttling:    # Brute-force protection (TS-04, RM-U02)
+        max_attempts: 5
+        interval: '15 minutes'
+
+  access_control:
+    - { path: ^/admin,      roles: ROLE_ADMIN }
+    - { path: ^/entreprise, roles: ROLE_ENTREPRISE }
+    - { path: ^/candidat,   roles: ROLE_CANDIDAT }
+    - { path: ^/inscription, roles: PUBLIC_ACCESS }
+    - { path: ^/connexion,  roles: PUBLIC_ACCESS }

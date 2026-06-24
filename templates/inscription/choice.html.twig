@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Choix du rôle{% endblock %}
+
+{% block body %}
+    <h1>Choisissez votre rôle</h1>
+
+    <ul>
+        <li><a href="{{ path('app_inscription_candidat') }}">Je suis un candidat</a></li>
+        <li><a href="{{ path('app_inscription_entreprise') }}">Je représente une entreprise</a></li>
+    </ul>
+{% endblock %}
