@@ -1,0 +1,261 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes offres{% endblock %}
+{% block page_title %}Mes offres{% endblock %}
+{% block page_subtitle %}{{ app.user.profilEntreprise is not null ? app.user.profilEntreprise.raisonSociale : 'Espace recruteur' }} · Gérez vos publications{% endblock %}
+
+{% block body %}
+
+{# ── KPI CARDS ── #}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Offres actives</span>
+            <div class="stat-card-icon warning">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0 1 12 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">3</div>
+        <div class="stat-card-trend" style="color:var(--text-muted);">6 offres publiées au total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Candidatures totales</span>
+            <div class="stat-card-icon accent">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">151</div>
+        <div class="stat-card-trend">+12 cette semaine</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Score moyen</span>
+            <div class="stat-card-icon success">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">87%</div>
+        <div class="stat-card-trend">Qualité des candidatures</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Événements à venir</span>
+            <div class="stat-card-icon info">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">3</div>
+        <div class="stat-card-trend">Prochain dans 5 jours</div>
+    </div>
+</div>
+
+{# ── OFFERS TABLE ── #}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Publications</div>
+            <div class="card-subtitle">6 offres affichées · Dernière mise à jour aujourd'hui</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;">
+                <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Rechercher une offre..." style="padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.83rem;outline:none;font-family:inherit;width:220px;color:var(--text-primary);">
+            </div>
+            <div style="display:flex;gap:6px;">
+                <button class="btn btn-primary btn-sm active" style="border-radius:999px;">Toutes</button>
+                <button class="btn btn-secondary btn-sm" style="border-radius:999px;">Actives</button>
+                <button class="btn btn-secondary btn-sm" style="border-radius:999px;">Clôturées</button>
+                <button class="btn btn-secondary btn-sm" style="border-radius:999px;">Expirées</button>
+            </div>
+            <a href="#" class="btn btn-primary btn-sm" style="gap:5px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Créer une offre
+            </a>
+        </div>
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Offre</th>
+                <th>Statut</th>
+                <th>Candidatures</th>
+                <th>Localisation</th>
+                <th>Contrat</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">Développeur Full Stack Symfony</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Engineering · Publié le 09 juin 2026</div>
+                </td>
+                <td><span class="badge badge-success">● Active</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#6366f1;">A</div>
+                            <div class="av" style="background:#22c55e;">B</div>
+                            <div class="av" style="background:#f59e0b;">C</div>
+                            <div class="av av-more">+21</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">24</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Paris</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">CDI</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-outline-accent btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon" title="Options">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">Product Manager Senior</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Produit · Publié le 04 juin 2026</div>
+                </td>
+                <td><span class="badge badge-success">● Active</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#a855f7;">E</div>
+                            <div class="av" style="background:#3b82f6;">F</div>
+                            <div class="av av-more">+14</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">17</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Lyon</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">CDI</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-outline-accent btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">UX/UI Designer</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Design · Publié le 28 mai 2026</div>
+                </td>
+                <td><span class="badge badge-success">● Active</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#ec4899;">H</div>
+                            <div class="av" style="background:#f59e0b;">I</div>
+                            <div class="av av-more">+28</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">31</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Remote</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Freelance</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-outline-accent btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">Data Engineer</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Data · Publié le 15 mai 2026</div>
+                </td>
+                <td><span class="badge badge-neutral">● Clôturée</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#6366f1;">M</div>
+                            <div class="av av-more">+45</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">48</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Bordeaux</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">CDI</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-secondary btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">DevOps Engineer</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Infrastructure · Publié le 02 mai 2026</div>
+                </td>
+                <td><span class="badge badge-danger">● Expirée</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#ef4444;">P</div>
+                            <div class="av av-more">+7</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">9</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Paris</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">CDD</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-secondary btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">Responsable Marketing Digital</div>
+                    <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Marketing · Publié le 20 avr. 2026</div>
+                </td>
+                <td><span class="badge badge-neutral">● Clôturée</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar-group">
+                            <div class="av" style="background:#22c55e;">R</div>
+                            <div class="av av-more">+19</div>
+                        </div>
+                        <span style="font-size:.82rem;font-weight:600;">22</span>
+                    </div>
+                </td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">Paris</td>
+                <td style="color:var(--text-secondary);font-size:.85rem;">CDI</td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="#" class="btn btn-secondary btn-sm">Voir candidatures</a>
+                        <button class="btn btn-secondary btn-sm btn-icon">
+                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        <span style="font-size:.8rem;color:var(--text-secondary);margin-right:auto;">6 offres affichées</span>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+    </div>
+</div>
+
+{% endblock %}

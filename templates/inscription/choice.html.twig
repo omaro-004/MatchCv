@@ -1,12 +1,47 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Choix du rôle{% endblock %}
+{% block title %}Créer un compte{% endblock %}
 
-{% block body %}
-    <h1>Choisissez votre rôle</h1>
+{% block auth_body %}
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width:500px;">
 
-    <ul>
-        <li><a href="{{ path('app_inscription_candidat') }}">Je suis un candidat</a></li>
-        <li><a href="{{ path('app_inscription_entreprise') }}">Je représente une entreprise</a></li>
-    </ul>
+        <div class="auth-logo">
+            <div class="auth-logo-icon">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+                <div class="auth-logo-badge">
+                    <svg width="10" height="10" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+            </div>
+            <h1>Match<span>CV</span></h1>
+            <p>Rejoignez la plateforme de matching IA</p>
+        </div>
+
+        <p class="auth-title">Vous êtes…</p>
+
+        <div class="choice-grid">
+            <a href="{{ path('app_inscription_candidat') }}" class="choice-card">
+                <div class="choice-card-icon candidat">🎓</div>
+                <h3>Un candidat</h3>
+                <p>Étudiant ou jeune diplômé à la recherche d'un stage ou d'un emploi</p>
+            </a>
+            <a href="{{ path('app_inscription_entreprise') }}" class="choice-card">
+                <div class="choice-card-icon entreprise">🏢</div>
+                <h3>Une entreprise</h3>
+                <p>Recruteur souhaitant publier des offres et trouver les meilleurs profils</p>
+            </a>
+        </div>
+
+        <div style="text-align:center;margin-top:24px;">
+            <span style="font-size:.83rem;color:var(--text-secondary);">Déjà un compte ?</span>
+            <a href="{{ path('app_login') }}" style="font-size:.83rem;color:var(--accent);font-weight:600;margin-left:4px;">Se connecter</a>
+        </div>
+
+    </div>
+</div>
 {% endblock %}

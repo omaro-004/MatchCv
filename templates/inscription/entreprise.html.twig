@@ -2,11 +2,121 @@
 
 {% block title %}Inscription entreprise{% endblock %}
 
-{% block body %}
-    <h1>Inscription entreprise</h1>
+{% block auth_body %}
+<div class="auth-wrapper" style="padding: 40px 24px;">
+    <div class="auth-card" style="max-width:560px;">
 
-    {{ form_start(form) }}
-        {{ form_widget(form) }}
-        <button type="submit">Créer mon compte entreprise</button>
-    {{ form_end(form) }}
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px;">
+            <a href="{{ path('app_inscription_choice') }}" style="color:var(--text-muted);display:flex;align-items:center;gap:4px;font-size:.82rem;transition:color .15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
+                Retour
+            </a>
+        </div>
+
+        <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <div style="width:36px;height:36px;background:rgba(245,158,11,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🏢</div>
+                <div>
+                    <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary);">Créer un compte recruteur</div>
+                    <div style="font-size:.8rem;color:var(--text-secondary);">Publiez vos offres et trouvez les meilleurs profils</div>
+                </div>
+            </div>
+        </div>
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>{{ form_label(form.email) }}</label>
+                    {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'contact@entreprise.com'}}) }}
+                    {{ form_errors(form.email) }}
+                </div>
+                <div class="form-group">
+                    <label>Raison sociale</label>
+                    {{ form_widget(form.raisonSociale, {'attr': {'class': 'form-control', 'placeholder': 'Nom légal de l\'entreprise'}}) }}
+                    {{ form_errors(form.raisonSociale) }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    {{ form_widget(form.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': '8 caractères minimum'}}) }}
+                    {{ form_errors(form.plainPassword.first) }}
+                </div>
+                <div class="form-group">
+                    <label>Confirmer le mot de passe</label>
+                    {{ form_widget(form.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': 'Répétez le mot de passe'}}) }}
+                    {{ form_errors(form.plainPassword.second) }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Téléphone <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.numTel, {'attr': {'class': 'form-control', 'placeholder': '+33 1 00 00 00 00'}}) }}
+                    {{ form_errors(form.numTel) }}
+                </div>
+                <div class="form-group">
+                    <label>Numéro RNE <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.rne, {'attr': {'class': 'form-control', 'placeholder': '123456789'}}) }}
+                    {{ form_errors(form.rne) }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type d'entreprise <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.type, {'attr': {'class': 'form-control', 'placeholder': 'PME, Startup, Grand groupe…'}}) }}
+                    {{ form_errors(form.type) }}
+                </div>
+                <div class="form-group">
+                    <label>Secteur d'activité <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.secteur, {'attr': {'class': 'form-control', 'placeholder': 'Tech, Finance, Santé…'}}) }}
+                    {{ form_errors(form.secteur) }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Localisation <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.localisation, {'attr': {'class': 'form-control', 'placeholder': 'Paris, France'}}) }}
+                    {{ form_errors(form.localisation) }}
+                </div>
+                <div class="form-group">
+                    <label>Site web <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.lienSite, {'attr': {'class': 'form-control', 'placeholder': 'https://www.entreprise.com'}}) }}
+                    {{ form_errors(form.lienSite) }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LinkedIn <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.lienLinkedin, {'attr': {'class': 'form-control', 'placeholder': 'https://linkedin.com/company/...'}}) }}
+                    {{ form_errors(form.lienLinkedin) }}
+                </div>
+                <div class="form-group">
+                    <label>Logo <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    {{ form_widget(form.logo, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
+                    {{ form_errors(form.logo) }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 14px rgba(245,158,11,.35);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/>
+                </svg>
+                Créer mon compte recruteur
+            </button>
+
+        {{ form_end(form) }}
+
+        <div style="text-align:center;margin-top:20px;">
+            <span style="font-size:.83rem;color:var(--text-secondary);">Déjà un compte ?</span>
+            <a href="{{ path('app_login') }}" style="font-size:.83rem;color:var(--accent);font-weight:600;margin-left:4px;">Se connecter</a>
+        </div>
+
+    </div>
+</div>
 {% endblock %}

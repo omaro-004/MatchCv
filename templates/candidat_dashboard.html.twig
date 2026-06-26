@@ -1,0 +1,224 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Welcome back, {{ app.user.profilCandidat is not null ? app.user.profilCandidat.nomComplet|split(' ')|first : 'Candidat' }} 👋{% endblock %}
+{% block page_subtitle %}Voici un aperçu de votre activité sur MatchCV{% endblock %}
+
+{% block body %}
+
+{# ── KPI CARDS ── #}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Offres matchées</span>
+            <div class="stat-card-icon accent">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">24</div>
+        <div class="stat-card-trend">+3 cette semaine</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Candidatures</span>
+            <div class="stat-card-icon success">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">7</div>
+        <div class="stat-card-trend">+2 cette semaine</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Vues du profil</span>
+            <div class="stat-card-icon info">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">312</div>
+        <div class="stat-card-trend">+41 cette semaine</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Meilleur score</span>
+            <div class="stat-card-icon warning">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">92%</div>
+        <div class="stat-card-trend">Software Engineer, Dataiku</div>
+    </div>
+</div>
+
+{# ── SEARCH & FILTERS ── #}
+<div class="search-bar">
+    <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Rechercher un poste, une entreprise, un mot-clé...">
+    </div>
+    <select class="filter-select">
+        <option>Tous les secteurs</option>
+        <option>Tech & IT</option>
+        <option>Finance</option>
+        <option>Marketing</option>
+    </select>
+    <select class="filter-select">
+        <option>Toutes les villes</option>
+        <option>Paris</option>
+        <option>Lyon</option>
+        <option>Remote</option>
+    </select>
+    <select class="filter-select">
+        <option>Tous les contrats</option>
+        <option>Stage</option>
+        <option>CDI</option>
+        <option>Alternance</option>
+    </select>
+</div>
+
+{# ── MATCHED OFFERS ── #}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div>
+        <div class="section-title">Offres matchées</div>
+        <div class="section-subtitle">8 offres correspondent à votre profil</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm">Meilleur match</button>
+        <button class="btn btn-secondary btn-sm">Plus récentes</button>
+    </div>
+</div>
+
+{# Offer card 1 #}
+<div class="offer-card">
+    <div class="offer-logo" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">DK</div>
+    <div class="offer-info">
+        <div class="offer-title">Software Engineer Intern</div>
+        <div class="offer-company">🏢 Dataiku</div>
+        <div class="offer-meta">
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Paris, France
+            </span>
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Stage
+            </span>
+            <span class="offer-salary">1 200 €/mois</span>
+        </div>
+        <div class="offer-tags">
+            <span class="tag">Python</span>
+            <span class="tag">Machine Learning</span>
+            <span class="tag">SQL</span>
+            <span class="tag">React</span>
+        </div>
+    </div>
+    <div class="offer-actions">
+        <span class="match-score high">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+            92% match
+        </span>
+        <div class="offer-date">Aujourd'hui</div>
+        <a href="#" class="btn btn-primary btn-sm">Voir l'offre</a>
+    </div>
+</div>
+
+{# Offer card 2 #}
+<div class="offer-card">
+    <div class="offer-logo" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">BN</div>
+    <div class="offer-info">
+        <div class="offer-title">Data Scientist</div>
+        <div class="offer-company">🏢 BNP Paribas</div>
+        <div class="offer-meta">
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Paris, France
+            </span>
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                CDI
+            </span>
+            <span class="offer-salary">45–55k €/an</span>
+        </div>
+        <div class="offer-tags">
+            <span class="tag">Python</span>
+            <span class="tag">R</span>
+            <span class="tag">Statistics</span>
+            <span class="tag">Finance</span>
+        </div>
+    </div>
+    <div class="offer-actions">
+        <span class="match-score mid">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+            88% match
+        </span>
+        <div class="offer-date">Il y a 1 jour</div>
+        <a href="#" class="btn btn-secondary btn-sm">Voir l'offre</a>
+    </div>
+</div>
+
+{# Offer card 3 #}
+<div class="offer-card">
+    <div class="offer-logo" style="background:linear-gradient(135deg,#22c55e,#15803d);">CS</div>
+    <div class="offer-info">
+        <div class="offer-title">Product Manager – Growth</div>
+        <div class="offer-company">🏢 Contentsquare</div>
+        <div class="offer-meta">
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Lyon, France
+            </span>
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                CDI
+            </span>
+            <span class="offer-salary">50–60k €/an</span>
+        </div>
+        <div class="offer-tags">
+            <span class="tag">Product</span>
+            <span class="tag">Analytics</span>
+            <span class="tag">A/B Testing</span>
+        </div>
+    </div>
+    <div class="offer-actions">
+        <span class="match-score mid">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+            83% match
+        </span>
+        <div class="offer-date">Il y a 2 jours</div>
+        <a href="#" class="btn btn-secondary btn-sm">Voir l'offre</a>
+    </div>
+</div>
+
+{# Offer card 4 #}
+<div class="offer-card">
+    <div class="offer-logo" style="background:linear-gradient(135deg,#f59e0b,#d97706);">TH</div>
+    <div class="offer-info">
+        <div class="offer-title">ML Engineer Apprenticeship</div>
+        <div class="offer-company">🏢 Thales</div>
+        <div class="offer-meta">
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                Bordeaux
+            </span>
+            <span class="offer-meta-item">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Alternance
+            </span>
+        </div>
+        <div class="offer-tags">
+            <span class="tag">TensorFlow</span>
+            <span class="tag">PyTorch</span>
+            <span class="tag">Python</span>
+        </div>
+    </div>
+    <div class="offer-actions">
+        <span class="match-score low">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+            79% match
+        </span>
+        <div class="offer-date">Il y a 3 jours</div>
+        <a href="#" class="btn btn-secondary btn-sm">Voir l'offre</a>
+    </div>
+</div>
+
+{% endblock %}
