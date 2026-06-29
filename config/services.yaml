@@ -1,23 +1,39 @@
-# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
-
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
-# See also https://symfony.com/doc/current/service_container/import.html
-
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
-parameters:
+# config/services.yaml
+# (extrait — ajouter ces lignes à votre services.yaml existant)
+#
+# Symfony 6/7 : l'autowiring est activé par défaut pour tout le namespace App\.
+# La seule configuration explicite nécessaire est le tag kernel.event_subscriber
+# sur le FaceIdListener (pour qu'il soit reconnu comme abonné aux événements kernel).
 
 services:
-    # default configuration for services in *this* file
-    _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
+    # ── Déclarations existantes (ne pas modifier) ──────────────────
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # ── NOUVEAU : LoginSuccessHandler ──────────────────────────────
+    # Symfony injecte RouterInterface automatiquement via l'autowiring.
+    # La déclaration explicite n'est nécessaire que si vous voulez
+    # la référencer dans security.yaml par son FQCN (ce que nous faisons).
+    App\Security\LoginSuccessHandler:
+        arguments:
+            $router: '@router'
+
+    # ── NOUVEAU : FaceIdListener (Event Subscriber) ───────────────
+    # autoconfigure: true suffit normalement à détecter l'interface
+    # EventSubscriberInterface et à poser le tag automatiquement.
+    # La déclaration explicite ci-dessous est un garde-fou.
+    App\Security\FaceIdListener:
+        arguments:
+            $tokenStorage: '@security.token_storage'
+            $router: '@router'
+        tags:
+            - { name: kernel.event_subscriber }

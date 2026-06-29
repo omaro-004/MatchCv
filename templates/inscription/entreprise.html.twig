@@ -3,6 +3,14 @@
 {% block title %}Inscription entreprise{% endblock %}
 
 {% block auth_body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">
+            {{ form_errors(field) }}
+        </div>
+    {% endif %}
+{% endmacro %}
+
 <div class="auth-wrapper" style="padding: 40px 24px;">
     <div class="auth-card" style="max-width:560px;">
 
@@ -29,12 +37,12 @@
                 <div class="form-group">
                     <label>{{ form_label(form.email) }}</label>
                     {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'contact@entreprise.com'}}) }}
-                    {{ form_errors(form.email) }}
+                    {{ _self.field_error(form.email) }}
                 </div>
                 <div class="form-group">
                     <label>Raison sociale</label>
                     {{ form_widget(form.raisonSociale, {'attr': {'class': 'form-control', 'placeholder': 'Nom légal de l\'entreprise'}}) }}
-                    {{ form_errors(form.raisonSociale) }}
+                    {{ _self.field_error(form.raisonSociale) }}
                 </div>
             </div>
 
@@ -42,51 +50,51 @@
                 <div class="form-group">
                     <label>Mot de passe</label>
                     {{ form_widget(form.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': '8 caractères minimum'}}) }}
-                    {{ form_errors(form.plainPassword.first) }}
+                    {{ _self.field_error(form.plainPassword.first) }}
                 </div>
                 <div class="form-group">
                     <label>Confirmer le mot de passe</label>
                     {{ form_widget(form.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': 'Répétez le mot de passe'}}) }}
-                    {{ form_errors(form.plainPassword.second) }}
+                    {{ _self.field_error(form.plainPassword.second) }}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Téléphone <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Téléphone</label>
                     {{ form_widget(form.numTel, {'attr': {'class': 'form-control', 'placeholder': '+33 1 00 00 00 00'}}) }}
-                    {{ form_errors(form.numTel) }}
+                    {{ _self.field_error(form.numTel) }}
                 </div>
                 <div class="form-group">
-                    <label>Numéro RNE <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Numéro RNE</label>
                     {{ form_widget(form.rne, {'attr': {'class': 'form-control', 'placeholder': '123456789'}}) }}
-                    {{ form_errors(form.rne) }}
+                    {{ _self.field_error(form.rne) }}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Type d'entreprise <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Type d'entreprise</label>
                     {{ form_widget(form.type, {'attr': {'class': 'form-control', 'placeholder': 'PME, Startup, Grand groupe…'}}) }}
-                    {{ form_errors(form.type) }}
+                    {{ _self.field_error(form.type) }}
                 </div>
                 <div class="form-group">
-                    <label>Secteur d'activité <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Secteur d'activité</label>
                     {{ form_widget(form.secteur, {'attr': {'class': 'form-control', 'placeholder': 'Tech, Finance, Santé…'}}) }}
-                    {{ form_errors(form.secteur) }}
+                    {{ _self.field_error(form.secteur) }}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Localisation <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Localisation</label>
                     {{ form_widget(form.localisation, {'attr': {'class': 'form-control', 'placeholder': 'Paris, France'}}) }}
-                    {{ form_errors(form.localisation) }}
+                    {{ _self.field_error(form.localisation) }}
                 </div>
                 <div class="form-group">
                     <label>Site web <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                     {{ form_widget(form.lienSite, {'attr': {'class': 'form-control', 'placeholder': 'https://www.entreprise.com'}}) }}
-                    {{ form_errors(form.lienSite) }}
+                    {{ _self.field_error(form.lienSite) }}
                 </div>
             </div>
 
@@ -94,12 +102,12 @@
                 <div class="form-group">
                     <label>LinkedIn <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                     {{ form_widget(form.lienLinkedin, {'attr': {'class': 'form-control', 'placeholder': 'https://linkedin.com/company/...'}}) }}
-                    {{ form_errors(form.lienLinkedin) }}
+                    {{ _self.field_error(form.lienLinkedin) }}
                 </div>
                 <div class="form-group">
                     <label>Logo <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                     {{ form_widget(form.logo, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
-                    {{ form_errors(form.logo) }}
+                    {{ _self.field_error(form.logo) }}
                 </div>
             </div>
 

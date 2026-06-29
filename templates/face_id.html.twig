@@ -1,0 +1,433 @@
+{# templates/inscription/face_id.html.twig
+   Étape 2 de l'inscription candidat : configuration Face ID.
+   Dépendances JS :
+     - face-api.js  (chargé depuis jsDelivr CDN)
+     - Les modèles TinyFaceDetector sont servis depuis /models/ (dossier public/)
+#}
+{% extends 'base.html.twig' %}
+
+{% block title %}Configurer le Face ID{% endblock %}
+
+{% block auth_body %}
+<div class="auth-wrapper" style="min-height:100vh;background:linear-gradient(135deg,#f0f1ff 0%,#fafafa 60%,#eff6ff 100%);padding:40px 24px;align-items:flex-start;">
+    <div class="auth-card" style="max-width:520px;margin:auto;">
+
+        {# ── En-tête de l'étape ── #}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text-muted);">
+                <span style="width:22px;height:22px;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">✓</span>
+                <span>Informations</span>
+                <span style="color:var(--border);">→</span>
+                <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">2</span>
+                <span style="color:var(--accent);font-weight:600;">Face ID</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+            <div style="font-size:1.15rem;font-weight:800;color:var(--text-primary);margin-bottom:6px;">
+                Bonjour {{ nom|split(' ')|first }} 👋 — Configurez votre Face ID
+            </div>
+            <div style="font-size:.84rem;color:var(--text-secondary);line-height:1.6;">
+                La reconnaissance faciale permet de sécuriser votre accès à MatchCV.
+                Activez-la pour vérifier votre identité à chaque connexion, ou passez cette étape.
+            </div>
+        </div>
+
+        {# ── Zone de statut du modèle IA ── #}
+        <div id="model-status" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:var(--radius-sm);font-size:.82rem;color:var(--accent);margin-bottom:20px;">
+            <span id="model-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span>
+            <span id="model-status-text">Chargement du modèle IA de détection faciale…</span>
+        </div>
+
+        {# ── Zone vidéo ── #}
+        <div id="video-container" style="position:relative;width:100%;border-radius:var(--radius-md);overflow:hidden;background:#0f172a;margin-bottom:20px;display:none;">
+            <video id="video" autoplay muted playsinline
+                   style="width:100%;display:block;border-radius:var(--radius-md);"></video>
+            <canvas id="overlay"
+                    style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+
+            {# Cadre de guidage central #}
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:180px;height:220px;border:2px dashed rgba(99,102,241,.6);border-radius:50%;pointer-events:none;"></div>
+
+            {# Badge de statut de détection #}
+            <div id="detection-badge" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:5px 14px;border-radius:999px;font-size:.78rem;font-weight:600;background:rgba(15,23,42,.75);color:#e2e8f0;backdrop-filter:blur(4px);white-space:nowrap;">
+                Positionnez votre visage dans le cadre
+            </div>
+        </div>
+
+        {# ── Message si caméra indisponible ── #}
+        <div id="no-camera" style="display:none;padding:16px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-sm);font-size:.84rem;color:#b91c1c;margin-bottom:20px;">
+            <strong>Caméra inaccessible.</strong> Vérifiez que vous avez autorisé l'accès à la caméra dans votre navigateur,
+            ou passez cette étape et activez le Face ID ultérieurement depuis vos paramètres.
+        </div>
+
+        {# ── Indicateur de qualité de capture ── #}
+        <div id="capture-indicator" style="display:none;margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-secondary);margin-bottom:6px;">
+                <span>Qualité de capture</span>
+                <span id="confidence-label">—</span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:999px;overflow:hidden;">
+                <div id="confidence-bar" style="height:100%;width:0%;background:var(--accent);border-radius:999px;transition:width .3s,background .3s;"></div>
+            </div>
+        </div>
+
+        {# ── Toggle Face ID ── #}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border:1.5px solid var(--border);border-radius:var(--radius-md);margin-bottom:24px;background:var(--surface);">
+            <div>
+                <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);margin-bottom:2px;">
+                    Activer le Face ID à la connexion
+                </div>
+                <div id="toggle-description" style="font-size:.78rem;color:var(--text-muted);line-height:1.45;">
+                    Désactivé — connexion classique par email/mot de passe
+                </div>
+            </div>
+            <label style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;cursor:pointer;" title="Activer / désactiver le Face ID">
+                <input type="checkbox" id="face-id-toggle" style="opacity:0;width:0;height:0;" aria-label="Activer le Face ID">
+                <span id="toggle-slider" style="
+                    position:absolute;inset:0;
+                    background:var(--border);
+                    border-radius:999px;
+                    transition:background .25s;
+                    display:flex;align-items:center;
+                ">
+                    <span id="toggle-knob" style="
+                        position:absolute;left:3px;
+                        width:20px;height:20px;
+                        background:#fff;
+                        border-radius:50%;
+                        box-shadow:0 1px 4px rgba(0,0,0,.2);
+                        transition:transform .25s;
+                    "></span>
+                </span>
+            </label>
+        </div>
+
+        {# ── Boutons d'action ── #}
+        <div id="actions" style="display:flex;flex-direction:column;gap:10px;">
+
+            {# Bouton "Capturer mon visage" — visible uniquement quand le toggle est ON #}
+            <button id="btn-capture"
+                    style="display:none;"
+                    class="btn btn-primary btn-full btn-lg"
+                    disabled>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3"/><path d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
+                </svg>
+                <span id="btn-capture-label">Capturer mon visage</span>
+            </button>
+
+            {# Bouton "Terminer l'inscription" — passer sans Face ID ou après capture #}
+            <button id="btn-finish" class="btn btn-primary btn-full btn-lg" disabled>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Terminer l'inscription
+            </button>
+
+            <button id="btn-skip" class="btn btn-secondary btn-full" style="font-size:.85rem;">
+                Passer cette étape — je configure plus tard
+            </button>
+        </div>
+
+        {# ── Zone de feedback ── #}
+        <div id="feedback" style="display:none;margin-top:16px;padding:12px 16px;border-radius:var(--radius-sm);font-size:.84rem;font-weight:500;"></div>
+
+    </div>
+</div>
+
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse-border {
+        0%, 100% { border-color: rgba(99,102,241,.6); }
+        50% { border-color: rgba(34,197,94,.8); box-shadow: 0 0 0 3px rgba(34,197,94,.2); }
+    }
+</style>
+
+<script>
+// ============================================================
+//  CONFIGURATION
+// ============================================================
+const MODELS_PATH   = '/models';           
+const FACE_ID_REGISTER_URL = '{{ path("app_face_id_register") }}';
+
+// ============================================================
+//  ÉTAT DE L'APPLICATION
+// ============================================================
+let modelsLoaded    = false;
+let stream          = null;           
+let capturedDescriptor = null;        
+let detectionInterval  = null;        
+let faceIdEnabled   = false;          
+
+// ============================================================
+//  RÉFÉRENCES DOM
+// ============================================================
+const $ = id => document.getElementById(id);
+const modelStatus     = $('model-status');
+const modelStatusText = $('model-status-text');
+const modelSpinner    = $('model-spinner');
+const videoContainer  = $('video-container');
+const video           = $('video');
+const overlay         = $('overlay');
+const noCameraDiv     = $('no-camera');
+const detectionBadge  = $('detection-badge');
+const captureIndicator = $('capture-indicator');
+const confidenceBar   = $('confidence-bar');
+const confidenceLabel = $('confidence-label');
+const toggle          = $('face-id-toggle');
+const toggleSlider    = $('toggle-slider');
+const toggleKnob      = $('toggle-knob');
+const toggleDesc      = $('toggle-description');
+const btnCapture      = $('btn-capture');
+const btnCaptureLabel = $('btn-capture-label');
+const btnFinish       = $('btn-finish');
+const btnSkip         = $('btn-skip');
+const feedbackDiv     = $('feedback');
+
+// ============================================================
+//  CHARGEMENT DES MODÈLES face-api.js
+// ============================================================
+async function loadModels() {
+    try {
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_PATH),
+            faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_PATH),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODELS_PATH)
+        ]);
+        modelsLoaded = true;
+        modelSpinner.style.display = 'none';
+        modelStatusText.textContent = 'Modèle prêt — activez le Face ID ci-dessous pour commencer.';
+        modelStatus.style.background = 'rgba(34,197,94,.07)';
+        modelStatus.style.borderColor = 'rgba(34,197,94,.2)';
+        modelStatus.style.color = 'var(--success)';
+        
+        btnFinish.disabled = false;
+        btnSkip.disabled   = false;
+    } catch (err) {
+        console.error('Erreur chargement modèles face-api.js :', err);
+        modelStatusText.textContent = 'Impossible de charger le modèle IA. Vérifiez que les fichiers sont dans public/models/.';
+        modelStatus.style.background = 'rgba(239,68,68,.07)';
+        modelStatus.style.borderColor = 'rgba(239,68,68,.2)';
+        modelStatus.style.color = 'var(--danger)';
+        modelSpinner.style.display = 'none';
+        btnFinish.disabled = false;
+    }
+}
+
+// ============================================================
+//  DÉMARRAGE / ARRÊT DE LA WEBCAM
+// ============================================================
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 480 }, height: { ideal: 360 }, facingMode: 'user' },
+            audio: false,
+        });
+        video.srcObject = stream;
+        await new Promise(resolve => { video.onloadedmetadata = resolve; });
+        videoContainer.style.display = 'block';
+        captureIndicator.style.display = 'block';
+
+        overlay.width  = video.videoWidth;
+        overlay.height = video.videoHeight;
+
+        startContinuousDetection();
+    } catch (err) {
+        console.warn('Caméra inaccessible :', err);
+        noCameraDiv.style.display = 'block';
+        videoContainer.style.display = 'none';
+    }
+}
+
+// ============================================================
+//  ARRÊT DE LA CAMÉRA
+// ============================================================
+function stopCamera() {
+    if (detectionInterval) {
+        clearInterval(detectionInterval);
+        detectionInterval = null;
+    }
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+    video.srcObject = null;
+    videoContainer.style.display = 'none';
+    captureIndicator.style.display = 'none';
+}
+
+// ============================================================
+//  DÉTECTION CONTINUE (boucle)
+// ============================================================
+function startContinuousDetection() {
+    detectionInterval = setInterval(async () => {
+        if (!modelsLoaded || video.readyState < 2) return;
+
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+        const detection = await faceapi
+            .detectSingleFace(video, options)
+            .withFaceLandmarks(true) 
+            .withFaceDescriptor();
+
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        if (detection) {
+            const { x, y, width, height } = detection.detection.box;
+            const scaleX = overlay.width / video.videoWidth;
+            const scaleY = overlay.height / video.videoHeight;
+            ctx.strokeStyle = 'rgba(34,197,94,.9)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x * scaleX, y * scaleY, width * scaleX, height * scaleY);
+
+            const score = detection.detection.score;
+            const pct   = Math.round(score * 100);
+            confidenceBar.style.width     = pct + '%';
+            confidenceBar.style.background = pct > 70 ? 'var(--success)' : 'var(--warning)';
+            confidenceLabel.textContent   = pct + '%';
+
+            detectionBadge.textContent    = pct > 70 ? '✓ Visage détecté — cliquez sur "Capturer"' : 'Approchez-vous de la caméra';
+            detectionBadge.style.color    = pct > 70 ? '#86efac' : '#fcd34d';
+
+            btnCapture.disabled = pct < 60;
+        } else {
+            confidenceBar.style.width    = '0%';
+            confidenceLabel.textContent  = '—';
+            detectionBadge.textContent   = 'Positionnez votre visage dans le cadre';
+            detectionBadge.style.color   = '#e2e8f0';
+            btnCapture.disabled          = true;
+        }
+    }, 250);
+}
+
+// ============================================================
+//  CAPTURE DU DESCRIPTEUR
+// ============================================================
+async function captureFaceDescriptor() {
+    if (!modelsLoaded) return;
+
+    btnCaptureLabel.textContent = 'Capture en cours…';
+    btnCapture.disabled = true;
+
+    const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+
+    const measurements = [];
+    for (let i = 0; i < 3; i++) {
+        const detection = await faceapi.detectSingleFace(video, options).withFaceLandmarks(true).withFaceDescriptor();
+        if (detection) measurements.push(detection.descriptor);
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    if (measurements.length === 0) {
+        showFeedback('Aucun visage détecté. Repositionnez-vous et réessayez.', 'error');
+        btnCaptureLabel.textContent = 'Capturer mon visage';
+        btnCapture.disabled = false;
+        return;
+    }
+
+    capturedDescriptor = new Float32Array(128);
+    for (const d of measurements) {
+        for (let i = 0; i < 128; i++) capturedDescriptor[i] += d[i] / measurements.length;
+    }
+
+    stopCamera();
+
+    btnCapture.style.display   = 'none';
+    btnFinish.style.background = 'linear-gradient(135deg,var(--success),#15803d)';
+    btnFinish.textContent      = '✓ Visage enregistré — Terminer l\'inscription';
+
+    showFeedback('Visage capturé avec succès ! Cliquez sur "Terminer" pour finaliser.', 'success');
+}
+
+// ============================================================
+//  TOGGLE : ACTIVER / DÉSACTIVER FACE ID
+// ============================================================
+toggle.addEventListener('change', async () => {
+    faceIdEnabled = toggle.checked;
+
+    toggleSlider.style.background = faceIdEnabled ? 'var(--accent)' : 'var(--border)';
+    toggleKnob.style.transform    = faceIdEnabled ? 'translateX(20px)' : 'translateX(0)';
+    toggleDesc.textContent        = faceIdEnabled
+        ? 'Activé — vérification faciale requise à chaque connexion'
+        : 'Désactivé — connexion classique par email/mot de passe';
+
+    if (faceIdEnabled) {
+        btnCapture.style.display = 'block';
+        btnFinish.textContent    = capturedDescriptor ? '✓ Terminer l\'inscription' : 'Terminer l\'inscription';
+        capturedDescriptor = null;
+        if (modelsLoaded) await startCamera();
+    } else {
+        btnCapture.style.display = 'none';
+        stopCamera();
+        capturedDescriptor = null;
+    }
+});
+
+btnCapture.addEventListener('click', captureFaceDescriptor);
+
+btnFinish.addEventListener('click', async () => {
+    if (faceIdEnabled && !capturedDescriptor) {
+        showFeedback('Veuillez d\'abord capturer votre visage ou désactiver le Face ID.', 'error');
+        return;
+    }
+    await submitRegistration(false);
+});
+
+btnSkip.addEventListener('click', async () => {
+    await submitRegistration(true);
+});
+
+async function submitRegistration(skip) {
+    btnFinish.disabled = true;
+    btnSkip.disabled   = true;
+
+    const payload = {
+        skip:       skip,
+        enabled:    !skip && faceIdEnabled,
+        descriptor: (!skip && capturedDescriptor) ? Array.from(capturedDescriptor) : null,
+    };
+
+    try {
+        const response = await fetch(FACE_ID_REGISTER_URL, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showFeedback(data.message, 'success');
+            setTimeout(() => { window.location.href = data.redirect; }, 1200);
+        } else {
+            showFeedback(data.error || 'Une erreur est survenue.', 'error');
+            btnFinish.disabled = false;
+            btnSkip.disabled   = false;
+        }
+    } catch (err) {
+        console.error(err);
+        showFeedback('Erreur réseau. Veuillez réessayer.', 'error');
+        btnFinish.disabled = false;
+        btnSkip.disabled   = false;
+    }
+}
+
+function showFeedback(message, type) {
+    feedbackDiv.style.display    = 'block';
+    feedbackDiv.textContent      = message;
+    feedbackDiv.style.background = type === 'success' ? 'rgba(34,197,94,.1)'  : 'rgba(239,68,68,.1)';
+    feedbackDiv.style.border     = type === 'success' ? '1px solid rgba(34,197,94,.25)' : '1px solid rgba(239,68,68,.25)';
+    feedbackDiv.style.color      = type === 'success' ? '#15803d' : '#b91c1c';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    btnFinish.disabled = true;
+    btnSkip.disabled   = true;
+
+    await loadModels();
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+{% endblock %}

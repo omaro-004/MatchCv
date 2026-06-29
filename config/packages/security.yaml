@@ -1,36 +1,90 @@
 # config/packages/security.yaml
+#
+# Configuration Symfony Security — MatchCV
+# Ajouts pour le Face ID :
+#   - success_handler sur form_login
+#   - access_control pour la route /face-id/verify
+# ================================================================
+
 security:
-  password_hashers:
-    App\Entity\User:
-      algorithm: bcrypt
-      cost: 12           # Exigence RM-U02 : coût bcrypt ≥ 12
 
-  providers:
-    app_user_provider:
-      entity:
-        class: App\Entity\User
-        property: email
+    # ── Algorithme de hachage (bcrypt coût 12 — règle RM-U02) ───────
+    password_hashers:
+        App\Entity\User:
+            algorithm: bcrypt
+            cost: 12
 
-  firewalls:
-    main:
-      lazy: true
-      provider: app_user_provider
-      form_login:
-        login_path: app_login
-        check_path: app_login
-        default_target_path: app_dashboard_redirect
-      logout:
-        path: app_logout
-      remember_me:
-        secret: '%kernel.secret%'
-        lifetime: 1800     # 30 min — exigence spec technique
-      login_throttling:    # Brute-force protection (TS-04, RM-U02)
-        max_attempts: 5
-        interval: '15 minutes'
+    # ── User provider ────────────────────────────────────────────────
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email  # getUserIdentifier() = email
 
-  access_control:
-    - { path: ^/admin,      roles: ROLE_ADMIN }
-    - { path: ^/entreprise, roles: ROLE_ENTREPRISE }
-    - { path: ^/candidat,   roles: ROLE_CANDIDAT }
-    - { path: ^/inscription, roles: PUBLIC_ACCESS }
-    - { path: ^/connexion,  roles: PUBLIC_ACCESS }
+    # ── Firewalls ────────────────────────────────────────────────────
+    firewalls:
+
+        # Firewall dev (assets, profiler Symfony — aucune sécurité)
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # Firewall principal (toute l'application)
+        main:
+            lazy: true
+            provider: app_user_provider
+
+            # ── Authentification classique (email / password) ────────
+            form_login:
+                login_path:    app_login           # GET  /connexion
+                check_path:    app_login           # POST /connexion
+                username_parameter: _username      # Champ email dans connexion.html.twig
+                password_parameter: _password
+                csrf_parameter:    _csrf_token
+                csrf_token_id:     authenticate
+
+                # *** NOUVEAU : délègue la redirection post-login à notre handler ***
+                # Ce handler vérifie si Face ID est activé et redirige en conséquence.
+                success_handler: App\Security\LoginSuccessHandler
+
+                # En cas d'échec, retour sur la page de login
+                failure_path:  app_login
+
+            # ── Déconnexion ─────────────────────────────────────────
+            logout:
+                path:            app_logout        # GET /deconnexion
+                target:          app_login
+                # Invalide TOUTE la session (efface aussi face_id_verified)
+                invalidate_session: true
+
+            # ── Rate limiting (protection brute-force — règle TS-04) ─
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
+
+    # ── Contrôle d'accès par préfixe de route ───────────────────────
+    # Ordre important : Symfony teste du PREMIER au DERNIER et s'arrête
+    # au premier match. Les routes publiques doivent être AVANT les
+    # routes protégées.
+    access_control:
+
+        # Routes publiques (inscription, connexion, mdp oublié)
+        - { path: ^/inscription,        roles: PUBLIC_ACCESS }
+        - { path: ^/connexion,          roles: PUBLIC_ACCESS }
+        - { path: ^/mot-de-passe,       roles: PUBLIC_ACCESS }
+        - { path: ^/reset-password,     roles: PUBLIC_ACCESS }
+
+        # Routes Face ID :
+        # /face-id/verify  → accessible à tout candidat connecté
+        #                    (même si face_id_verified n'est pas encore true,
+        #                     car c'est précisément cette page qui valide)
+        # /face-id/validate et /face-id/fallback → ROLE_CANDIDAT requis
+        - { path: ^/face-id/verify,    roles: ROLE_CANDIDAT }
+        - { path: ^/face-id/validate,  roles: ROLE_CANDIDAT }
+        - { path: ^/face-id/fallback,  roles: ROLE_CANDIDAT }
+
+        # Routes protégées par rôle (règle RM-R03)
+        - { path: ^/candidat,           roles: ROLE_CANDIDAT }
+        - { path: ^/entreprise,         roles: ROLE_ENTREPRISE }
+        - { path: ^/admin,              roles: ROLE_ADMIN }
+        - { path: ^/dashboard,          roles: IS_AUTHENTICATED_FULLY }

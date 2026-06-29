@@ -3,6 +3,14 @@
 {% block title %}Inscription candidat{% endblock %}
 
 {% block auth_body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">
+            {{ form_errors(field) }}
+        </div>
+    {% endif %}
+{% endmacro %}
+
 <div class="auth-wrapper" style="padding: 40px 24px;">
     <div class="auth-card" style="max-width:560px;">
 
@@ -29,12 +37,12 @@
                 <div class="form-group">
                     <label>{{ form_label(form.email) }}</label>
                     {{ form_widget(form.email, {'attr': {'class': 'form-control', 'placeholder': 'vous@exemple.com'}}) }}
-                    {{ form_errors(form.email) }}
+                    {{ _self.field_error(form.email) }}
                 </div>
                 <div class="form-group">
                     <label>Nom complet</label>
                     {{ form_widget(form.nomComplet, {'attr': {'class': 'form-control', 'placeholder': 'Sophie Laurent'}}) }}
-                    {{ form_errors(form.nomComplet) }}
+                    {{ _self.field_error(form.nomComplet) }}
                 </div>
             </div>
 
@@ -42,38 +50,37 @@
                 <div class="form-group">
                     <label>Mot de passe</label>
                     {{ form_widget(form.plainPassword.first, {'attr': {'class': 'form-control', 'placeholder': '8 caractères minimum'}}) }}
-                    {{ form_errors(form.plainPassword.first) }}
+                    {{ _self.field_error(form.plainPassword.first) }}
                 </div>
                 <div class="form-group">
                     <label>Confirmer le mot de passe</label>
                     {{ form_widget(form.plainPassword.second, {'attr': {'class': 'form-control', 'placeholder': 'Répétez le mot de passe'}}) }}
-                    {{ form_errors(form.plainPassword.second) }}
+                    {{ _self.field_error(form.plainPassword.second) }}
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Téléphone <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Téléphone</label>
                     {{ form_widget(form.numTel, {'attr': {'class': 'form-control', 'placeholder': '+33 6 00 00 00 00'}}) }}
-                    {{ form_errors(form.numTel) }}
+                    {{ _self.field_error(form.numTel) }}
                 </div>
                 <div class="form-group">
-                    <label>Localisation <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                    <label>Localisation</label>
                     {{ form_widget(form.localisation, {'attr': {'class': 'form-control', 'placeholder': 'Paris, France'}}) }}
-                    {{ form_errors(form.localisation) }}
+                    {{ _self.field_error(form.localisation) }}
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Type de contrat recherché</label>
                 {{ form_widget(form.typeContrat, {'attr': {'class': 'form-control filter-select', 'style': 'cursor:pointer;'}}) }}
-                {{ form_errors(form.typeContrat) }}
+                {{ _self.field_error(form.typeContrat) }}
             </div>
 
             <div class="form-group">
                 <label>
                     CV (PDF)
-                    <span style="color:var(--danger);margin-left:2px;">*</span>
                 </label>
                 <div style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;transition:border-color .2s;cursor:pointer;" id="cv-drop-zone">
                     <svg width="24" height="24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;">
@@ -84,32 +91,32 @@
                     <p style="font-size:.74rem;color:var(--text-muted);">Format PDF uniquement · Max 5 Mo</p>
                     {{ form_widget(form.cv, {'attr': {'class': 'form-control', 'style': 'margin-top:10px;', 'accept': 'application/pdf'}}) }}
                 </div>
-                {{ form_errors(form.cv) }}
+                {{ _self.field_error(form.cv) }}
             </div>
 
             <div class="form-group">
                 <label>Bio <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                 {{ form_widget(form.bio, {'attr': {'class': 'form-control', 'placeholder': 'Parlez de vous, de vos compétences et de vos projets...', 'rows': '3'}}) }}
-                {{ form_errors(form.bio) }}
+                {{ _self.field_error(form.bio) }}
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label>LinkedIn <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                     {{ form_widget(form.lienLinkedin, {'attr': {'class': 'form-control', 'placeholder': 'https://linkedin.com/in/...'}}) }}
-                    {{ form_errors(form.lienLinkedin) }}
+                    {{ _self.field_error(form.lienLinkedin) }}
                 </div>
                 <div class="form-group">
                     <label>Autres liens <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
                     {{ form_widget(form.autresLiens, {'attr': {'class': 'form-control', 'placeholder': 'GitHub, portfolio...'}}) }}
-                    {{ form_errors(form.autresLiens) }}
+                    {{ _self.field_error(form.autresLiens) }}
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Photo de profil <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                <label>Photo de profil</label>
                 {{ form_widget(form.photo, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
-                {{ form_errors(form.photo) }}
+                {{ _self.field_error(form.photo) }}
             </div>
 
             <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;">
