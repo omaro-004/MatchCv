@@ -32,6 +32,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Mot de passe haché en bcrypt (coût 12).
      * Jamais stocké en clair — règle RM-U02.
+     * Pour un compte créé via OAuth (GitHub/LinkedIn), ce champ contient
+     * un hash aléatoire inutilisable : la connexion ne se fait QUE via OAuth.
      */
     #[ORM\Column(name: 'mdp', type: 'string', length: 255)]
     private string $password = '';
@@ -57,35 +59,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     // Champs Face ID — exclusifs au rôle candidat
     // ---------------------------------------------------------------
 
-    /**
-     * Descripteur facial encodé en JSON.
-     * Tableau de 128 valeurs float produit par face-api.js (FaceNet / TinyFaceDetector).
-     * Null si aucune capture biométrique n'a été effectuée.
-     * Stocké en LONGTEXT pour absorber les 128 floats sérialisés.
-     *
-     * IMPORTANT sécurité : ce champ ne contient PAS une image, seulement
-     * un vecteur mathématique non réversible en image originale.
-     */
     #[ORM\Column(name: 'face_descriptor', type: 'text', nullable: true)]
     private ?string $faceDescriptor = null;
 
-    /**
-     * Toggle Face ID : true = vérification faciale obligatoire à chaque login.
-     * false = login classique email/password uniquement.
-     * Uniquement pertinent si faceDescriptor n'est pas null.
-     */
     #[ORM\Column(name: 'face_id_enabled', type: 'boolean', options: ['default' => false])]
     private bool $faceIdEnabled = false;
 
-    /**
-     * Statut de l'inscription en 2 étapes.
-     * 'pending_face_id' → le candidat a validé l'étape 1 mais n'a pas encore
-     *                      passé l'étape Face ID.
-     * 'complete'        → inscription terminée (avec ou sans Face ID activé).
-     * Pour les entreprises, toujours 'complete'.
-     */
     #[ORM\Column(name: 'inscription_status', type: 'string', length: 30, options: ['default' => 'complete'])]
     private string $inscriptionStatus = 'complete';
+
+    // ---------------------------------------------------------------
+    // Champs OAuth (connexion via GitHub / LinkedIn) — NOUVEAU
+    // ---------------------------------------------------------------
+
+    /**
+     * Fournisseur OAuth utilisé pour créer/lier ce compte : 'github' | 'linkedin' | null.
+     * Null = compte créé via inscription classique (email/mot de passe).
+     */
+    #[ORM\Column(name: 'oauth_provider', type: 'string', length: 20, nullable: true)]
+    private ?string $oauthProvider = null;
+
+    /**
+     * Identifiant unique de l'utilisateur chez le fournisseur OAuth
+     * (GitHub "id" ou LinkedIn "sub"). Combiné à oauthProvider, permet
+     * de retrouver le compte lors des connexions suivantes.
+     */
+    #[ORM\Column(name: 'oauth_id', type: 'string', length: 255, nullable: true)]
+    private ?string $oauthId = null;
 
     // ---------------------------------------------------------------
     // Relations 1:1 vers les profils (cascade persist/remove)
@@ -97,10 +97,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: ProfilEntreprise::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?ProfilEntreprise $profilEntreprise = null;
 
-    // ---------------------------------------------------------------
-    // Lifecycle callback : date_inscri auto à la création
-    // ---------------------------------------------------------------
-
     #[ORM\PrePersist]
     public function setDateInscriOnCreate(): void
     {
@@ -110,13 +106,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     // ---------------------------------------------------------------
-    // UserInterface — requis par Symfony Security
+    // UserInterface
     // ---------------------------------------------------------------
 
-    /**
-     * Retourne le tableau de rôles Symfony.
-     * Un User ne possède qu'un seul rôle fonctionnel (règle RM-U03).
-     */
     public function getRoles(): array
     {
         return ['ROLE_' . strtoupper($this->role)];
@@ -129,12 +121,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function eraseCredentials(): void
     {
-        // Rien à effacer ici : on ne stocke jamais le mot de passe en clair.
     }
-
-    // ---------------------------------------------------------------
-    // PasswordAuthenticatedUserInterface
-    // ---------------------------------------------------------------
 
     public function getPassword(): string
     {
@@ -246,28 +233,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     // Getters & Setters — Face ID
     // ---------------------------------------------------------------
 
-    /**
-     * Retourne le descripteur facial (JSON string des 128 floats) ou null.
-     */
     public function getFaceDescriptor(): ?string
     {
         return $this->faceDescriptor;
     }
 
-    /**
-     * Persiste le descripteur facial.
-     * Accepte directement la chaîne JSON produite par face-api.js côté client.
-     */
     public function setFaceDescriptor(?string $faceDescriptor): static
     {
         $this->faceDescriptor = $faceDescriptor;
         return $this;
     }
 
-    /**
-     * Retourne le descripteur facial désérialisé en tableau PHP, ou null.
-     * Utile pour d'éventuels calculs de distance côté serveur.
-     */
     public function getFaceDescriptorArray(): ?array
     {
         if ($this->faceDescriptor === null) {
@@ -288,10 +264,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * Vérifie si le candidat a bien enregistré un descripteur facial.
-     * Un Face ID activé sans descripteur est une incohérence — ce helper le détecte.
-     */
     public function hasFaceDescriptor(): bool
     {
         return $this->faceDescriptor !== null && $this->faceDescriptor !== '';
@@ -314,6 +286,40 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isInscriptionComplete(): bool
     {
         return $this->inscriptionStatus === 'complete';
+    }
+
+    // ---------------------------------------------------------------
+    // Getters & Setters — OAuth (NOUVEAU)
+    // ---------------------------------------------------------------
+
+    public function getOauthProvider(): ?string
+    {
+        return $this->oauthProvider;
+    }
+
+    public function setOauthProvider(?string $oauthProvider): static
+    {
+        $this->oauthProvider = $oauthProvider;
+        return $this;
+    }
+
+    public function getOauthId(): ?string
+    {
+        return $this->oauthId;
+    }
+
+    public function setOauthId(?string $oauthId): static
+    {
+        $this->oauthId = $oauthId;
+        return $this;
+    }
+
+    /**
+     * true si ce compte a été créé/lié via GitHub ou LinkedIn.
+     */
+    public function isOAuthAccount(): bool
+    {
+        return $this->oauthProvider !== null && $this->oauthId !== null;
     }
 
     // ---------------------------------------------------------------

@@ -1,17 +1,23 @@
 {# templates/face_id/verify.html.twig
    Page de vérification faciale lors du login.
    Affiché uniquement si face_id_enabled = true (LoginSuccessHandler).
-   L'utilisateur est déjà authentifié (email/password OK) mais l'accès
-   aux routes protégées est bloqué par FaceIdListener jusqu'à ce que
-   la session 'face_id_verified' soit mise à true.
+   L'utilisateur est déjà authentifié (email/password OK) — app.user N'EST
+   donc PAS null à ce stade. base.html.twig bascule alors automatiquement
+   sur le layout "sidebar" et rend le bloc {% block body %} (PAS auth_body,
+   qui n'est rendu QUE si app.user est null).
+   C'est pour cela que ce template doit utiliser {% block body %}.
+   L'accès aux autres routes protégées reste bloqué par FaceIdListener
+   jusqu'à ce que la session 'face_id_verified' soit mise à true.
 #}
 {% extends 'base.html.twig' %}
 
 {% block title %}Vérification Face ID{% endblock %}
+{% block page_title %}Vérification Face ID{% endblock %}
+{% block page_subtitle %}Confirmez votre identité pour accéder à votre espace{% endblock %}
 
-{% block auth_body %}
-<div class="auth-wrapper" style="background:linear-gradient(135deg,#f0f1ff 0%,#fafafa 60%,#eff6ff 100%);">
-    <div class="auth-card" style="max-width:480px;">
+{% block body %}
+<div style="min-height:calc(100vh - 140px);display:flex;align-items:center;justify-content:center;padding:24px 0;">
+    <div class="card" style="width:100%;max-width:480px;padding:40px 36px;">
 
         {# ── En-tête ── #}
         <div class="auth-logo" style="margin-bottom:20px;">
@@ -90,7 +96,9 @@
 <style>
     @keyframes spin { to { transform: rotate(360deg); } }
 </style>
+{% endblock %}
 
+{% block javascripts %}
 {# Descripteur de référence stocké en base, passé par le contrôleur #}
 <script>
 // ============================================================
@@ -140,6 +148,7 @@ async function loadModels() {
     try {
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_PATH),
+            faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_PATH),
             faceapi.nets.faceRecognitionNet.loadFromUri(MODELS_PATH),
         ]);
         modelsLoaded = true;
@@ -196,6 +205,7 @@ function startDetectionLoop() {
 
         const detection = await faceapi
             .detectSingleFace(video, options)
+            .withFaceLandmarks(true)
             .withFaceDescriptor();
 
         const ctx = overlay.getContext('2d');
@@ -241,7 +251,7 @@ btnVerify.addEventListener('click', async () => {
     const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
     const descriptors = [];
     for (let i = 0; i < 3; i++) {
-        const d = await faceapi.detectSingleFace(video, options).withFaceDescriptor();
+        const d = await faceapi.detectSingleFace(video, options).withFaceLandmarks(true).withFaceDescriptor();
         if (d) descriptors.push(d.descriptor);
         verifyBar.style.width = ((i + 1) / 3 * 50) + '%';
         verifyPct.textContent = Math.round((i + 1) / 3 * 50) + '%';

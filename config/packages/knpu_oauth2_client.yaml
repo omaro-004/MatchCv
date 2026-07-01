@@ -1,0 +1,28 @@
+knpu_oauth2_client:
+    clients:
+        # ── GitHub ──────────────────────────────────────────────────
+        # composer require league/oauth2-github
+        github_candidat:
+            type: github
+            client_id: '%env(OAUTH_GITHUB_CLIENT_ID)%'
+            client_secret: '%env(OAUTH_GITHUB_CLIENT_SECRET)%'
+            redirect_route: app_oauth_github_check
+            redirect_params: {}
+
+        # ── LinkedIn ────────────────────────────────────────────────
+        # LinkedIn n'expose plus que "Sign In with LinkedIn using OpenID
+        # Connect" (2023+). On utilise donc un client "generic" basé sur
+        # League\OAuth2\Client\Provider\GenericProvider, déjà fourni par
+        # league/oauth2-client (dépendance du bundle, aucun package
+        # supplémentaire nécessaire).
+        linkedin_candidat:
+            type: generic
+            provider_class: League\OAuth2\Client\Provider\GenericProvider
+            provider_options:
+                urlAuthorize: 'https://www.linkedin.com/oauth/v2/authorization'
+                urlAccessToken: 'https://www.linkedin.com/oauth/v2/accessToken'
+                urlResourceOwnerDetails: 'https://api.linkedin.com/v2/userinfo'
+            client_id: '%env(OAUTH_LINKEDIN_CLIENT_ID)%'
+            client_secret: '%env(OAUTH_LINKEDIN_CLIENT_SECRET)%'
+            redirect_route: app_oauth_linkedin_check
+            redirect_params: {}

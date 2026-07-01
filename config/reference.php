@@ -472,7 +472,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  *     disallow_search_engine_index?: bool|Param, // Enabled by default when debug is enabled. // Default: true
  *     http_client?: bool|array{ // HTTP Client configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         max_host_connections?: int|Param, // The maximum number of connections to a single host.
  *         default_options?: array{
  *             headers?: array<string, mixed>,
@@ -1254,6 +1254,15 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     enable_profiler?: bool|Param, // Whether or not to enable the profiler collector to calculate and visualize migration status. This adds some queries overhead. // Default: false
  *     transactional?: bool|Param, // Whether or not to wrap migrations in a single transaction. // Default: true
  * }
+ * @psalm-type KnpuOauth2ClientConfig = array{
+ *     http_client?: scalar|Param|null, // Service id of HTTP client to use (must implement GuzzleHttp\ClientInterface) // Default: null
+ *     http_client_options?: array{
+ *         timeout?: int|Param,
+ *         proxy?: scalar|Param|null,
+ *         verify?: bool|Param, // Use only with proxy option set
+ *     },
+ *     clients?: array<string, array<string, mixed>>,
+ * }
  * @psalm-type SymfonycastsResetPasswordConfig = array{
  *     request_password_repository?: scalar|Param|null, // A class that implements ResetPasswordRequestRepositoryInterface - usually your ResetPasswordRequestRepository.
  *     lifetime?: int|Param, // The length of time in seconds that a password reset request is valid for after it is created. // Default: 3600
@@ -1363,6 +1372,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     security?: SecurityConfig,
  *     doctrine?: DoctrineConfig,
  *     doctrine_migrations?: DoctrineMigrationsConfig,
+ *     knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *     symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
  *     twig?: TwigConfig,
  *     twig_extra?: TwigExtraConfig,
@@ -1375,6 +1385,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
+ *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
@@ -1389,6 +1400,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
+ *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
@@ -1402,6 +1414,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         security?: SecurityConfig,
  *         doctrine?: DoctrineConfig,
  *         doctrine_migrations?: DoctrineMigrationsConfig,
+ *         knpu_oauth2_client?: KnpuOauth2ClientConfig,
  *         symfonycasts_reset_password?: SymfonycastsResetPasswordConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
