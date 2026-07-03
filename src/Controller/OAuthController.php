@@ -12,6 +12,7 @@ use League\OAuth2\Client\Provider\GithubResourceOwner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -22,15 +23,35 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Gère la connexion / inscription automatique des CANDIDATS via
  * GitHub et LinkedIn (règle RM-U05 : OAuth réservé aux candidats).
  *
+ * ────────────────────────────────────────────────────────────────
+ * IMPORTANT — À propos du "toujours revoir l'écran d'autorisation"
+ * ────────────────────────────────────────────────────────────────
+ * GitHub et LinkedIn ne fournissent PAS de paramètre `prompt=login`
+ * fiable comme le fait Google. Une fois que l'utilisateur a autorisé
+ * votre application une première fois sur le fournisseur, celui-ci
+ * redirige automatiquement sans réafficher l'écran de consentement
+ * lors des connexions suivantes. Ce comportement est géré côté
+ * fournisseur (session/cookie GitHub ou LinkedIn) et NE PEUT PAS
+ * être forcé de façon fiable depuis Symfony. Nous ajoutons tout de
+ * même les paramètres "best effort" ci-dessous (sans garantie sur
+ * LinkedIn/GitHub), mais la vraie garantie métier que vous demandez
+ * (ne jamais sauter l'étape de complétion pour un NOUVEAU compte)
+ * est assurée par la logique applicative dans finalizeOAuthLogin().
+ *
  * Flux :
  *   1. GET /connexion/{provider}        -> redirige vers le fournisseur
- *   2. GET /connexion/{provider}/check  -> callback : récupère le profil,
- *      crée ou retrouve le User + ProfilCandidat, connecte l'utilisateur,
- *      puis redirige vers /dashboard/redirect.
+ *   2. GET /connexion/{provider}/check  -> callback :
+ *        - retrouve/crée le User + ProfilCandidat
+ *        - si le compte est VRAIMENT nouveau (inscription_status !=
+ *          'complete') : stocke l'ID en session et redirige vers la
+ *          page "compléter mon profil" SANS authentifier Symfony
+ *        - si le compte est déjà complet (nouveau OU ancien) :
+ *          authentifie directement et redirige vers le dashboard
+ *          (ou Face ID si activé).
  *
  * Ces routes sont déjà PUBLIC_ACCESS et déjà exemptées du contrôle
- * Face ID grâce au préfixe existant "^/connexion" (security.yaml et
- * FaceIdListener::EXEMPT_PREFIXES) — aucune modification requise ailleurs.
+ * Face ID grâce au préfixe existant "^/connexion" — aucune
+ * modification de security.yaml ni de FaceIdListener nécessaire.
  */
 class OAuthController extends AbstractController
 {
@@ -43,11 +64,18 @@ class OAuthController extends AbstractController
     {
         return $clientRegistry
             ->getClient('github_candidat')
-            ->redirect(['read:user', 'user:email']);
+            ->redirect(
+                ['read:user', 'user:email'],
+                // "Best effort" : GitHub ignore ce paramètre pour forcer une
+                // réauthentification, mais `prompt=select_account` force bien
+                // l'écran de choix de compte quand GitHub le prend en charge.
+                ['allow_signup' => 'true', 'prompt' => 'select_account']
+            );
     }
 
     #[Route('/connexion/github/check', name: 'app_oauth_github_check', methods: ['GET'])]
     public function checkGithub(
+        Request $request,
         ClientRegistry $clientRegistry,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
@@ -67,9 +95,6 @@ class OAuthController extends AbstractController
         }
 
         $email = $githubUser->getEmail();
-
-        // GitHub ne renvoie pas toujours l'email si le profil est privé :
-        // on interroge alors explicitement l'API des emails du compte.
         if (!$email) {
             $email = $this->fetchGithubPrimaryEmail($httpClient, $accessToken->getToken());
         }
@@ -81,7 +106,7 @@ class OAuthController extends AbstractController
 
         $fullName = $githubUser->getName() ?: ($githubUser->getNickname() ?: 'Candidat GitHub');
 
-        $user = $this->findOrCreateOAuthUser(
+        [$user, $isNewAccount] = $this->findOrCreateOAuthUser(
             $em,
             $passwordHasher,
             provider: 'github',
@@ -90,20 +115,9 @@ class OAuthController extends AbstractController
             fullName: $fullName
         );
 
-        if ($user === null) {
-            $this->addFlash('error', 'Cette adresse email est déjà associée à un compte non-candidat. Connectez-vous avec votre email et mot de passe.');
-            return $this->redirectToRoute('app_login');
-        }
-
-        $security->login($user, 'form_login', 'main');
-
-        return $this->redirectToRoute('app_dashboard_redirect');
+        return $this->finalizeOAuthLogin($request, $security, $user, $isNewAccount);
     }
 
-    /**
-     * Appelle l'API GitHub /user/emails pour trouver l'email principal
-     * vérifié, quand le profil public ne l'expose pas.
-     */
     private function fetchGithubPrimaryEmail(HttpClientInterface $httpClient, string $accessToken): ?string
     {
         try {
@@ -141,11 +155,18 @@ class OAuthController extends AbstractController
     {
         return $clientRegistry
             ->getClient('linkedin_candidat')
-            ->redirect(['openid', 'profile', 'email']);
+            ->redirect(
+                ['openid', 'profile', 'email'],
+                // LinkedIn peut réutiliser une session/grant existant et sauter
+                // l'écran de consentement. `prompt=login` force, au minimum, une
+                // nouvelle authentification au niveau du provider.
+                ['prompt' => 'login']
+            );
     }
 
     #[Route('/connexion/linkedin/check', name: 'app_oauth_linkedin_check', methods: ['GET'])]
     public function checkLinkedin(
+        Request $request,
         ClientRegistry $clientRegistry,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
@@ -175,7 +196,7 @@ class OAuthController extends AbstractController
             $fullName = $data['name'] ?? 'Candidat LinkedIn';
         }
 
-        $user = $this->findOrCreateOAuthUser(
+        [$user, $isNewAccount] = $this->findOrCreateOAuthUser(
             $em,
             $passwordHasher,
             provider: 'linkedin',
@@ -184,24 +205,71 @@ class OAuthController extends AbstractController
             fullName: $fullName
         );
 
+        return $this->finalizeOAuthLogin($request, $security, $user, $isNewAccount);
+    }
+
+    // ================================================================
+    //  LOGIQUE COMMUNE
+    // ================================================================
+
+    /**
+     * Décide, une fois le User trouvé/créé, si on peut authentifier
+     * directement (profil complet — que ce soit un compte ancien ou
+     * un compte OAuth déjà complété auparavant) ou s'il faut d'abord
+     * passer par l'étape "compléter mon profil".
+     *
+     * Règle stricte demandée : SEUL un compte VRAIMENT nouveau
+     * (inscription_status !== 'complete', donc jamais complété) doit
+     * voir la page de complétion. Un compte déjà existant/complété —
+     * même s'il vient d'être lié à GitHub/LinkedIn pour la première
+     * fois via findOrCreateOAuthUser (cas "existingByEmail" complet)
+     * — passe directement au dashboard.
+     */
+    private function finalizeOAuthLogin(Request $request, Security $security, ?User $user, bool $isNewAccount): RedirectResponse
+    {
         if ($user === null) {
             $this->addFlash('error', 'Cette adresse email est déjà associée à un compte non-candidat. Connectez-vous avec votre email et mot de passe.');
             return $this->redirectToRoute('app_login');
         }
 
+        // ── Nettoyage systématique de toute session résiduelle ──────
+        // Évite qu'une ancienne clé de session (d'un flow interrompu
+        // précédemment) ne vienne fausser la logique.
+        $request->getSession()->remove('oauth_registration_user_id');
+
+        if (!$user->isInscriptionComplete()) {
+            // Compte incomplet : soit tout juste créé (nouveau), soit un
+            // compte OAuth précédemment créé mais jamais finalisé (l'utilisateur
+            // avait quitté avant de soumettre le formulaire de complétion).
+            // Dans les deux cas, on NE connecte PAS encore Symfony.
+            $request->getSession()->set('oauth_registration_user_id', $user->getId());
+            return $this->redirectToRoute('app_complete_profile');
+        }
+
+        // Profil complet (compte ancien OU nouveau déjà complété) →
+        // authentification réelle immédiate.
         $security->login($user, 'form_login', 'main');
+
+        if ($user->isFaceIdEnabled() && $user->hasFaceDescriptor()) {
+            $request->getSession()->remove('face_id_verified');
+            $request->getSession()->remove('face_id_verified_at');
+            return $this->redirectToRoute('app_face_id_verify');
+        }
 
         return $this->redirectToRoute('app_dashboard_redirect');
     }
 
-    // ================================================================
-    //  LOGIQUE COMMUNE : recherche ou création du compte candidat
-    // ================================================================
-
     /**
-     * Retourne le User correspondant à ce provider/oauthId, en le créant
-     * (User + ProfilCandidat) si nécessaire. Retourne null si l'email
-     * est déjà utilisé par un compte non-candidat (entreprise/admin).
+     * Retourne [User, bool $isNewAccount].
+     *
+     * $isNewAccount = true UNIQUEMENT si le User vient d'être créé lors
+     * de cet appel (aucune trace préalable, ni par provider+oauthId, ni
+     * par email). C'est cette information qui garantit — en plus du
+     * statut 'inscription_status' — que la page de complétion n'est
+     * proposée qu'aux comptes réellement neufs.
+     *
+     * Retourne [null, false] si l'email est déjà utilisé par un compte
+     * non-candidat (entreprise/admin).
      */
     private function findOrCreateOAuthUser(
         EntityManagerInterface $em,
@@ -210,40 +278,43 @@ class OAuthController extends AbstractController
         string $oauthId,
         string $email,
         string $fullName
-    ): ?User {
-        // 1. Un compte est déjà lié à ce provider + cet ID → connexion normale.
+    ): array {
+        // 1. Compte déjà lié à ce provider + cet ID (retour, éventuellement
+        //    encore en attente de complétion de profil s'il n'avait jamais
+        //    terminé son inscription).
         $existing = $em->getRepository(User::class)->findOneBy([
             'oauthProvider' => $provider,
             'oauthId' => $oauthId,
         ]);
         if ($existing) {
-            return $existing;
+            return [$existing, false];
         }
 
-        // 2. Un compte existe déjà avec cet email (inscription classique
-        //    ou autre provider) → on lie ce provider si c'est un candidat.
+        // 2. Compte existant avec cet email (inscription classique ou
+        //    autre provider) → on lie ce provider si c'est un candidat.
+        //    Ce n'est PAS un nouveau compte : on ne touche jamais à
+        //    inscription_status ici.
         $existingByEmail = $em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existingByEmail) {
             if (!$existingByEmail->isCandidat()) {
-                return null;
+                return [null, false];
             }
             $existingByEmail->setOauthProvider($provider);
             $existingByEmail->setOauthId($oauthId);
             $em->flush();
-            return $existingByEmail;
+            return [$existingByEmail, false];
         }
 
-        // 3. Aucun compte trouvé → création complète (User + ProfilCandidat).
+        // 3. Aucun compte trouvé → création (User + ProfilCandidat),
+        //    en attente de complétion de profil (CV notamment).
+        //    C'est le SEUL cas où $isNewAccount = true.
         $user = new User();
         $user->setEmail($email);
         $user->setRole('candidat');
-        // Mot de passe aléatoire haché : ce compte ne se connecte QUE via OAuth.
         $user->setPassword($passwordHasher->hashPassword($user, bin2hex(random_bytes(32))));
         $user->setOauthProvider($provider);
         $user->setOauthId($oauthId);
-        // Le flux OAuth court-circuite l'étape CV / Face ID de l'inscription
-        // classique (le candidat pourra compléter son profil plus tard).
-        $user->setInscriptionStatus('complete');
+        $user->setInscriptionStatus('pending_profile_completion');
 
         $profil = new ProfilCandidat();
         $profil->setNomComplet($fullName !== '' ? $fullName : 'Candidat');
@@ -253,6 +324,6 @@ class OAuthController extends AbstractController
         $em->persist($profil);
         $em->flush();
 
-        return $user;
+        return [$user, true];
     }
 }

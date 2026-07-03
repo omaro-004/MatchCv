@@ -38,10 +38,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'mdp', type: 'string', length: 255)]
     private string $password = '';
 
-    /**
-     * Rôle fonctionnel : 'candidat' | 'entreprise' | 'admin'.
-     * Converti en ROLE_CANDIDAT / ROLE_ENTREPRISE / ROLE_ADMIN pour Symfony Security.
-     */
     #[ORM\Column(name: 'role', type: 'string', length: 20, columnDefinition: "ENUM('candidat', 'entreprise', 'admin') NOT NULL")]
     private string $role = 'candidat';
 
@@ -55,41 +51,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'autres_liens', type: 'text', nullable: true)]
     private ?string $autresLiens = null;
 
-    // ---------------------------------------------------------------
-    // Champs Face ID — exclusifs au rôle candidat
-    // ---------------------------------------------------------------
-
     #[ORM\Column(name: 'face_descriptor', type: 'text', nullable: true)]
     private ?string $faceDescriptor = null;
 
     #[ORM\Column(name: 'face_id_enabled', type: 'boolean', options: ['default' => false])]
     private bool $faceIdEnabled = false;
 
+    /**
+     * Statut de l'inscription :
+     *  - 'pending_face_id'          : inscription classique, étape Face ID non terminée
+     *  - 'pending_profile_completion' : compte créé via OAuth (GitHub/LinkedIn),
+     *                                    CV/téléphone/localisation non renseignés
+     *  - 'complete'                 : inscription terminée
+     * Pour les entreprises, toujours 'complete'.
+     */
     #[ORM\Column(name: 'inscription_status', type: 'string', length: 30, options: ['default' => 'complete'])]
     private string $inscriptionStatus = 'complete';
 
-    // ---------------------------------------------------------------
-    // Champs OAuth (connexion via GitHub / LinkedIn) — NOUVEAU
-    // ---------------------------------------------------------------
-
-    /**
-     * Fournisseur OAuth utilisé pour créer/lier ce compte : 'github' | 'linkedin' | null.
-     * Null = compte créé via inscription classique (email/mot de passe).
-     */
     #[ORM\Column(name: 'oauth_provider', type: 'string', length: 20, nullable: true)]
     private ?string $oauthProvider = null;
 
-    /**
-     * Identifiant unique de l'utilisateur chez le fournisseur OAuth
-     * (GitHub "id" ou LinkedIn "sub"). Combiné à oauthProvider, permet
-     * de retrouver le compte lors des connexions suivantes.
-     */
     #[ORM\Column(name: 'oauth_id', type: 'string', length: 255, nullable: true)]
     private ?string $oauthId = null;
-
-    // ---------------------------------------------------------------
-    // Relations 1:1 vers les profils (cascade persist/remove)
-    // ---------------------------------------------------------------
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: ProfilCandidat::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?ProfilCandidat $profilCandidat = null;
@@ -104,10 +87,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->dateInscri = new \DateTimeImmutable();
         }
     }
-
-    // ---------------------------------------------------------------
-    // UserInterface
-    // ---------------------------------------------------------------
 
     public function getRoles(): array
     {
@@ -127,10 +106,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return $this->password;
     }
-
-    // ---------------------------------------------------------------
-    // Getters & Setters — champs existants
-    // ---------------------------------------------------------------
 
     public function getId(): ?int
     {
@@ -229,10 +204,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    // ---------------------------------------------------------------
-    // Getters & Setters — Face ID
-    // ---------------------------------------------------------------
-
     public function getFaceDescriptor(): ?string
     {
         return $this->faceDescriptor;
@@ -276,7 +247,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setInscriptionStatus(string $status): static
     {
-        if (!in_array($status, ['pending_face_id', 'complete'])) {
+        if (!in_array($status, ['pending_face_id', 'pending_profile_completion', 'complete'])) {
             throw new \InvalidArgumentException("Statut d'inscription invalide : $status.");
         }
         $this->inscriptionStatus = $status;
@@ -287,10 +258,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return $this->inscriptionStatus === 'complete';
     }
-
-    // ---------------------------------------------------------------
-    // Getters & Setters — OAuth (NOUVEAU)
-    // ---------------------------------------------------------------
 
     public function getOauthProvider(): ?string
     {
@@ -314,17 +281,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * true si ce compte a été créé/lié via GitHub ou LinkedIn.
-     */
     public function isOAuthAccount(): bool
     {
         return $this->oauthProvider !== null && $this->oauthId !== null;
     }
-
-    // ---------------------------------------------------------------
-    // Helpers rôle
-    // ---------------------------------------------------------------
 
     public function isCandidat(): bool
     {

@@ -1,0 +1,116 @@
+{# templates/inscription/complete_profile.html.twig
+   Étape post-OAuth : complétion du profil candidat (CV obligatoire).
+   Affiché juste après le retour de GitHub/LinkedIn, AVANT toute
+   authentification Symfony réelle (même logique que face_id.html.twig
+   pendant l'inscription classique).
+#}
+{% extends 'base.html.twig' %}
+
+{% block title %}Complétez votre profil{% endblock %}
+
+{% block auth_body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">
+            {{ form_errors(field) }}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+<div class="auth-wrapper" style="padding:40px 24px;align-items:flex-start;">
+    <div class="auth-card" style="max-width:560px;margin:auto;">
+
+        {# ── En-tête de l'étape ── #}
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--text-muted);">
+                <span style="width:22px;height:22px;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">✓</span>
+                <span>
+                    {% if provider == 'github' %}Connecté avec GitHub
+                    {% elseif provider == 'linkedin' %}Connecté avec LinkedIn
+                    {% else %}Compte créé{% endif %}
+                </span>
+                <span style="color:var(--border);">→</span>
+                <span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">2</span>
+                <span style="color:var(--accent);font-weight:600;">Profil</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <div style="width:36px;height:36px;background:rgba(99,102,241,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">🎓</div>
+                <div>
+                    <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary);">Plus qu'une étape !</div>
+                    <div style="font-size:.82rem;color:var(--text-secondary);">Complétez votre profil pour accéder aux offres matchées par l'IA</div>
+                </div>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-muted);background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px;">
+                Votre nom et votre email ont été récupérés automatiquement. Il ne manque plus que votre CV et quelques informations pour finaliser votre compte candidat.
+            </div>
+        </div>
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+            <div class="form-group">
+                <label>{{ form_label(form.nomComplet) }}</label>
+                {{ form_widget(form.nomComplet, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.nomComplet) }}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    {{ form_widget(form.numTel, {'attr': {'class': 'form-control', 'placeholder': '+33 6 00 00 00 00'}}) }}
+                    {{ _self.field_error(form.numTel) }}
+                </div>
+                <div class="form-group">
+                    <label>Localisation</label>
+                    {{ form_widget(form.localisation, {'attr': {'class': 'form-control', 'placeholder': 'Paris, France'}}) }}
+                    {{ _self.field_error(form.localisation) }}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Type de contrat recherché</label>
+                {{ form_widget(form.typeContrat, {'attr': {'class': 'form-control filter-select', 'style': 'cursor:pointer;'}}) }}
+                {{ _self.field_error(form.typeContrat) }}
+            </div>
+
+            <div class="form-group">
+                <label>CV (PDF)</label>
+                <div style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;">
+                    <svg width="24" height="24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 8px;display:block;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                        <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                    <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:4px;">Glissez votre CV ici ou cliquez pour parcourir</p>
+                    <p style="font-size:.74rem;color:var(--text-muted);">Format PDF uniquement · Max 10 Mo</p>
+                    {{ form_widget(form.cv, {'attr': {'class': 'form-control', 'style': 'margin-top:10px;', 'accept': 'application/pdf'}}) }}
+                </div>
+                <div class="form-hint">Le CV est nécessaire pour postuler aux offres — vous pourrez le mettre à jour plus tard depuis votre profil.</div>
+                {{ _self.field_error(form.cv) }}
+            </div>
+
+            <div class="form-group">
+                <label>Photo de profil <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                {{ form_widget(form.photo, {'attr': {'class': 'form-control', 'accept': 'image/*'}}) }}
+                {{ _self.field_error(form.photo) }}
+            </div>
+
+            <div class="form-group">
+                <label>Bio <span style="color:var(--text-muted);font-weight:400;">(optionnel)</span></label>
+                {{ form_widget(form.bio, {'attr': {'class': 'form-control', 'placeholder': 'Parlez de vous, de vos compétences et de vos projets...', 'rows': '3'}}) }}
+                {{ _self.field_error(form.bio) }}
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Finaliser mon inscription
+            </button>
+
+        {{ form_end(form) }}
+
+    </div>
+</div>
+{% endblock %}
