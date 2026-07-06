@@ -7,6 +7,7 @@ use App\Entity\ProfilEntreprise;
 use App\Entity\User;
 use App\Form\InscriptionCandidatType;
 use App\Form\InscriptionEntrepriseType;
+use App\Service\CvAiProfileAnalyzer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -40,6 +41,16 @@ class InscriptionController extends AbstractController
      * après la sauvegarde. On redirige vers l'étape Face ID (/inscription/candidat/face-id)
      * en passant l'ID du User fraîchement créé dans la session (clé sécurisée).
      *
+     * NOUVEAU (parsing IA du profil) : dès que le CV est uploadé, on déclenche
+     * App\Service\CvAiProfileAnalyzer qui extrait le texte du PDF et interroge
+     * l'IA pour pré-remplir automatiquement : années d'expérience, langues
+     * parlées, compétences techniques, formations, expériences pro et un
+     * résumé. Ceci remplace le simple "GET" des champs du formulaire — les
+     * données affichées sur le dashboard candidat sont désormais enrichies
+     * par une analyse réelle du contenu du CV. En cas d'échec (PDF image,
+     * API indisponible...), les champs IA restent simplement vides : cela
+     * ne bloque JAMAIS l'inscription (règles RM-U01, RM-U02, RM-U06 inchangées).
+     *
      * Règles : RM-U01 (unicité email), RM-U02 (hash bcrypt), RM-U06 (CV obligatoire).
      */
     #[Route('/inscription/candidat', name: 'app_inscription_candidat', methods: ['GET', 'POST'])]
@@ -47,7 +58,8 @@ class InscriptionController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        SluggerInterface $slugger
+        SluggerInterface $slugger,
+        CvAiProfileAnalyzer $cvAiProfileAnalyzer
     ): Response {
         if ($this->getUser()) {
             return $this->redirectToRoute('app_dashboard_redirect');
@@ -73,7 +85,7 @@ class InscriptionController extends AbstractController
             $user->setInscriptionStatus('pending_face_id');
 
             // ── Liaison 1:1 User ↔ ProfilCandidat ────────────────────────
-            $profilCandidat->setUser($user);
+            $user->setProfilCandidat($profilCandidat);
 
             // Upload photo de profil (optionnel)
             $photoFile = $form->get('photo')->getData();
@@ -84,21 +96,42 @@ class InscriptionController extends AbstractController
             }
 
             // Upload CV PDF (obligatoire pour postuler — RM-U06)
+            $cvAbsolutePath = null;
             $cvFile = $form->get('cv')->getData();
             if ($cvFile instanceof UploadedFile) {
-                $profilCandidat->setCv(
-                    $this->storeUploadedFile($cvFile, 'uploads/candidats/cv', $slugger)
-                );
+                $cvRelativePath = $this->storeUploadedFile($cvFile, 'uploads/candidats/cv', $slugger);
+                $profilCandidat->setCv($cvRelativePath);
+                $cvAbsolutePath = $this->getParameter('kernel.project_dir') . '/public/' . $cvRelativePath;
             }
 
             $entityManager->persist($user);
+            $entityManager->persist($profilCandidat);
             $entityManager->flush();
 
+            // ── NOUVEAU : analyse IA du profil (parsing CV + données form) ──
+            if ($cvAbsolutePath !== null) {
+                $aiData = $cvAiProfileAnalyzer->analyze($cvAbsolutePath, [
+                    'nom_complet'   => $profilCandidat->getNomComplet(),
+                    'bio'           => $profilCandidat->getBio(),
+                    'localisation'  => $profilCandidat->getLocalisation(),
+                    'type_contrat'  => $profilCandidat->getTypeContrat(),
+                ]);
+
+                $profilCandidat
+                    ->setAnneesExperience($aiData['annees_experience'])
+                    ->setLanguesParleesArray($aiData['langues_parlees'])
+                    ->setCompetencesTechniquesArray($aiData['competences_techniques'])
+                    ->setFormationsArray($aiData['formations'])
+                    ->setExperiencesProfessionnellesArray($aiData['experiences_professionnelles'])
+                    ->setProjetsAcademiquesArray($aiData['projets_academiques'])
+                    ->setSoftSkillsArray($aiData['soft_skills'])
+                    ->setResumeIa($aiData['resume_ia'])
+                    ->setCvAiParsedAt(new \DateTimeImmutable());
+
+                $entityManager->flush();
+            }
+
             // ── Passage de l'ID en session pour l'étape 2 ────────────────
-            // On stocke l'ID (entier) du User nouvellement créé dans la session.
-            // Cette valeur servira à la route face-id pour charger le bon User
-            // sans que le candidat soit encore connecté (authentification Symfony
-            // n'a pas encore eu lieu — c'est voulu, on est en plein flow d'inscription).
             $request->getSession()->set('face_id_registration_user_id', $user->getId());
 
             return $this->redirectToRoute('app_inscription_candidat_face_id');
@@ -179,7 +212,7 @@ class InscriptionController extends AbstractController
             // Les entreprises ont toujours le statut 'complete' dès la fin du formulaire
             $user->setInscriptionStatus('complete');
 
-            $profilEntreprise->setUser($user);
+            $user->setProfilEntreprise($profilEntreprise);
 
             $logoFile = $form->get('logo')->getData();
             if ($logoFile instanceof UploadedFile) {
@@ -189,6 +222,7 @@ class InscriptionController extends AbstractController
             }
 
             $entityManager->persist($user);
+            $entityManager->persist($profilEntreprise);
             $entityManager->flush();
 
             $this->addFlash('success', 'Votre compte recruteur a été créé avec succès. Connectez-vous pour publier vos premières offres !');

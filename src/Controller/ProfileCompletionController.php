@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ProfilCandidat;
 use App\Entity\User;
 use App\Form\CompleteProfileType;
+use App\Service\CvAiProfileAnalyzer;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -23,14 +24,15 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  * et surtout uploader son CV (règle RM-U06) avant d'accéder à son
  * dashboard.
  *
+ * NOUVEAU (parsing IA du profil) : comme pour le flux d'inscription
+ * classique, le CV uploadé ici déclenche également
+ * App\Service\CvAiProfileAnalyzer pour enrichir automatiquement le
+ * profil (années d'expérience, langues, compétences, formations,
+ * expériences pro, résumé).
+ *
  * Tant que ce n'est pas fait, l'utilisateur n'est PAS authentifié
  * auprès de Symfony Security (même logique que l'étape Face ID de
  * InscriptionController : ID en session, pas de token).
- *
- * Un compte déjà complet (ancien compte classique lié à OAuth, ou
- * compte OAuth déjà finalisé auparavant) ne passe JAMAIS par ce
- * contrôleur : OAuthController::finalizeOAuthLogin() l'authentifie
- * directement et redirige vers le dashboard.
  */
 class ProfileCompletionController extends AbstractController
 {
@@ -39,7 +41,8 @@ class ProfileCompletionController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
-        Security $security
+        Security $security,
+        CvAiProfileAnalyzer $cvAiProfileAnalyzer
     ): Response {
         // Si déjà pleinement connecté, cette étape n'a plus lieu d'être.
         if ($this->getUser()) {
@@ -77,16 +80,20 @@ class ProfileCompletionController extends AbstractController
             // Garde-fou : ne devrait jamais arriver, le ProfilCandidat
             // est créé en même temps que le User dans OAuthController.
             $profil = new ProfilCandidat();
-            $profil->setUser($user);
+            $user->setProfilCandidat($profil);
         }
 
         $form = $this->createForm(CompleteProfileType::class, $profil);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $cvAbsolutePath = null;
+
             $cvFile = $form->get('cv')->getData();
             if ($cvFile instanceof UploadedFile) {
-                $profil->setCv($this->storeUploadedFile($cvFile, 'uploads/candidats/cv', $slugger));
+                $cvRelativePath = $this->storeUploadedFile($cvFile, 'uploads/candidats/cv', $slugger);
+                $profil->setCv($cvRelativePath);
+                $cvAbsolutePath = $this->getParameter('kernel.project_dir') . '/public/' . $cvRelativePath;
             }
 
             $photoFile = $form->get('photo')->getData();
@@ -101,6 +108,29 @@ class ProfileCompletionController extends AbstractController
             $entityManager->persist($profil);
             $entityManager->persist($user);
             $entityManager->flush();
+
+            // ── NOUVEAU : analyse IA du profil (parsing CV + données form) ──
+            if ($cvAbsolutePath !== null) {
+                $aiData = $cvAiProfileAnalyzer->analyze($cvAbsolutePath, [
+                    'nom_complet'  => $profil->getNomComplet(),
+                    'bio'          => $profil->getBio(),
+                    'localisation' => $profil->getLocalisation(),
+                    'type_contrat' => $profil->getTypeContrat(),
+                ]);
+
+                $profil
+                    ->setAnneesExperience($aiData['annees_experience'])
+                    ->setLanguesParleesArray($aiData['langues_parlees'])
+                    ->setCompetencesTechniquesArray($aiData['competences_techniques'])
+                    ->setFormationsArray($aiData['formations'])
+                    ->setExperiencesProfessionnellesArray($aiData['experiences_professionnelles'])
+                    ->setProjetsAcademiquesArray($aiData['projets_academiques'])
+                    ->setSoftSkillsArray($aiData['soft_skills'])
+                    ->setResumeIa($aiData['resume_ia'])
+                    ->setCvAiParsedAt(new \DateTimeImmutable());
+
+                $entityManager->flush();
+            }
 
             $request->getSession()->remove('oauth_registration_user_id');
 

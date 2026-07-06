@@ -1,9 +1,10 @@
 # config/services.yaml
-# (extrait — ajouter ces lignes à votre services.yaml existant)
+# (extrait — ajouter/fusionner ces lignes à votre services.yaml existant)
 #
 # Symfony 6/7 : l'autowiring est activé par défaut pour tout le namespace App\.
 # La seule configuration explicite nécessaire est le tag kernel.event_subscriber
-# sur le FaceIdListener (pour qu'il soit reconnu comme abonné aux événements kernel).
+# sur le FaceIdListener, plus la liaison de l'argument scalaire $anthropicApiKey
+# du nouveau service CvAiProfileAnalyzer.
 
 services:
 
@@ -19,21 +20,24 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    # ── NOUVEAU : LoginSuccessHandler ──────────────────────────────
-    # Symfony injecte RouterInterface automatiquement via l'autowiring.
-    # La déclaration explicite n'est nécessaire que si vous voulez
-    # la référencer dans security.yaml par son FQCN (ce que nous faisons).
+    # ── LoginSuccessHandler ──────────────────────────────
     App\Security\LoginSuccessHandler:
         arguments:
             $router: '@router'
 
-    # ── NOUVEAU : FaceIdListener (Event Subscriber) ───────────────
-    # autoconfigure: true suffit normalement à détecter l'interface
-    # EventSubscriberInterface et à poser le tag automatiquement.
-    # La déclaration explicite ci-dessous est un garde-fou.
+    # ── FaceIdListener (Event Subscriber) ───────────────
     App\Security\FaceIdListener:
         arguments:
             $tokenStorage: '@security.token_storage'
             $router: '@router'
         tags:
             - { name: kernel.event_subscriber }
+
+    # ── NOUVEAU : CvAiProfileAnalyzer ──────────────────────────────
+    # Service d'analyse IA du profil candidat (parsing du CV PDF +
+    # données du formulaire d'inscription). Utilise l'API GRATUITE de
+    # Groq (https://console.groq.com). La clé API est lue depuis la
+    # variable d'environnement GROQ_API_KEY (voir .env / .env.local).
+    App\Service\CvAiProfileAnalyzer:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'

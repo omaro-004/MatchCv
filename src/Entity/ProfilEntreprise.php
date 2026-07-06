@@ -75,7 +75,25 @@ class ProfilEntreprise
 
     public function setUser(?User $user): static
     {
+        if ($this->user === $user) {
+            return $this;
+        }
+
+        if ($this->user !== null) {
+            $previousUser = $this->user;
+            $this->user = null;
+
+            if ($previousUser->getProfilEntreprise() === $this) {
+                $previousUser->setProfilEntreprise(null);
+            }
+        }
+
         $this->user = $user;
+
+        if ($user !== null && $user->getProfilEntreprise() !== $this) {
+            $user->setProfilEntreprise($this);
+        }
+
         return $this;
     }
 

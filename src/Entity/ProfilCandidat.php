@@ -5,8 +5,6 @@ namespace App\Entity;
 use App\Repository\ProfilCandidatRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\HttpFoundation\File\File;
-use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: ProfilCandidatRepository::class)]
 #[ORM\Table(name: 'profil_candidat')]
@@ -79,6 +77,46 @@ class ProfilCandidat
         message: 'Le type de contrat doit être : stage, emploi ou les_deux.'
     )]
     private string $typeContrat = 'stage';
+
+    // ---------------------------------------------------------------
+    // NOUVEAU — Champs "profil enrichi par IA" (parsing du CV PDF)
+    // Remplis automatiquement par App\Service\CvAiProfileAnalyzer.
+    // Jamais saisis manuellement par le candidat dans le formulaire
+    // d'inscription — uniquement dérivés du CV + des données du form.
+    // ---------------------------------------------------------------
+
+    #[ORM\Column(name: 'annees_experience', type: 'integer', nullable: true)]
+    private ?int $anneesExperience = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes). */
+    #[ORM\Column(name: 'langues_parlees', type: 'text', nullable: true)]
+    private ?string $languesParlees = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes). */
+    #[ORM\Column(name: 'competences_techniques', type: 'text', nullable: true)]
+    private ?string $competencesTechniques = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes). */
+    #[ORM\Column(name: 'formations', type: 'text', nullable: true)]
+    private ?string $formations = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes). */
+    #[ORM\Column(name: 'experiences_professionnelles', type: 'text', nullable: true)]
+    private ?string $experiencesProfessionnelles = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes) — projets académiques/personnels. */
+    #[ORM\Column(name: 'projets_academiques', type: 'text', nullable: true)]
+    private ?string $projetsAcademiques = null;
+
+    /** Stocké en base sous forme de JSON (tableau de chaînes) — soft skills. */
+    #[ORM\Column(name: 'soft_skills', type: 'text', nullable: true)]
+    private ?string $softSkills = null;
+
+    #[ORM\Column(name: 'resume_ia', type: 'text', nullable: true)]
+    private ?string $resumeIa = null;
+
+    #[ORM\Column(name: 'cv_ai_parsed_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $cvAiParsedAt = null;
 
     // ---------------------------------------------------------------
     // Getters & Setters
@@ -199,5 +237,214 @@ class ProfilCandidat
             'les_deux' => 'Stage & Emploi',
             default    => $this->typeContrat,
         };
+    }
+
+    // ---------------------------------------------------------------
+    // NOUVEAU — Accesseurs "profil enrichi par IA"
+    // ---------------------------------------------------------------
+
+    public function getAnneesExperience(): ?int
+    {
+        return $this->anneesExperience;
+    }
+
+    public function setAnneesExperience(?int $anneesExperience): static
+    {
+        $this->anneesExperience = $anneesExperience;
+        return $this;
+    }
+
+    public function getLanguesParlees(): ?string
+    {
+        return $this->languesParlees;
+    }
+
+    public function setLanguesParlees(?string $languesParlees): static
+    {
+        $this->languesParlees = $languesParlees;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getLanguesParleesArray(): array
+    {
+        return $this->decodeJsonArray($this->languesParlees);
+    }
+
+    /** @param string[] $values */
+    public function setLanguesParleesArray(array $values): static
+    {
+        $this->languesParlees = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getCompetencesTechniques(): ?string
+    {
+        return $this->competencesTechniques;
+    }
+
+    public function setCompetencesTechniques(?string $competencesTechniques): static
+    {
+        $this->competencesTechniques = $competencesTechniques;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getCompetencesTechniquesArray(): array
+    {
+        return $this->decodeJsonArray($this->competencesTechniques);
+    }
+
+    /** @param string[] $values */
+    public function setCompetencesTechniquesArray(array $values): static
+    {
+        $this->competencesTechniques = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getFormations(): ?string
+    {
+        return $this->formations;
+    }
+
+    public function setFormations(?string $formations): static
+    {
+        $this->formations = $formations;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getFormationsArray(): array
+    {
+        return $this->decodeJsonArray($this->formations);
+    }
+
+    /** @param string[] $values */
+    public function setFormationsArray(array $values): static
+    {
+        $this->formations = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getExperiencesProfessionnelles(): ?string
+    {
+        return $this->experiencesProfessionnelles;
+    }
+
+    public function setExperiencesProfessionnelles(?string $experiencesProfessionnelles): static
+    {
+        $this->experiencesProfessionnelles = $experiencesProfessionnelles;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getExperiencesProfessionnellesArray(): array
+    {
+        return $this->decodeJsonArray($this->experiencesProfessionnelles);
+    }
+
+    /** @param string[] $values */
+    public function setExperiencesProfessionnellesArray(array $values): static
+    {
+        $this->experiencesProfessionnelles = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getProjetsAcademiques(): ?string
+    {
+        return $this->projetsAcademiques;
+    }
+
+    public function setProjetsAcademiques(?string $projetsAcademiques): static
+    {
+        $this->projetsAcademiques = $projetsAcademiques;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getProjetsAcademiquesArray(): array
+    {
+        return $this->decodeJsonArray($this->projetsAcademiques);
+    }
+
+    /** @param string[] $values */
+    public function setProjetsAcademiquesArray(array $values): static
+    {
+        $this->projetsAcademiques = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getSoftSkills(): ?string
+    {
+        return $this->softSkills;
+    }
+
+    public function setSoftSkills(?string $softSkills): static
+    {
+        $this->softSkills = $softSkills;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getSoftSkillsArray(): array
+    {
+        return $this->decodeJsonArray($this->softSkills);
+    }
+
+    /** @param string[] $values */
+    public function setSoftSkillsArray(array $values): static
+    {
+        $this->softSkills = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getResumeIa(): ?string
+    {
+        return $this->resumeIa;
+    }
+
+    public function setResumeIa(?string $resumeIa): static
+    {
+        $this->resumeIa = $resumeIa;
+        return $this;
+    }
+
+    public function getCvAiParsedAt(): ?\DateTimeImmutable
+    {
+        return $this->cvAiParsedAt;
+    }
+
+    public function setCvAiParsedAt(?\DateTimeImmutable $cvAiParsedAt): static
+    {
+        $this->cvAiParsedAt = $cvAiParsedAt;
+        return $this;
+    }
+
+    /**
+     * true si le CV a déjà été analysé au moins une fois par l'IA.
+     */
+    public function hasAiParsedData(): bool
+    {
+        return $this->cvAiParsedAt !== null;
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers privés JSON
+    // ---------------------------------------------------------------
+
+    /** @return string[] */
+    private function decodeJsonArray(?string $json): array
+    {
+        if ($json === null || $json === '') {
+            return [];
+        }
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    /** @param string[] $values */
+    private function encodeJsonArray(array $values): string
+    {
+        return json_encode(array_values(array_filter($values, static fn ($v) => is_string($v) && trim($v) !== '')), JSON_UNESCAPED_UNICODE);
     }
 }

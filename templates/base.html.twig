@@ -915,7 +915,7 @@
                     <span class="sidebar-badge">3</span>
                 </a>
                 <div class="sidebar-section-label" style="margin-top:8px;">Compte</div>
-                <a href="#" class="sidebar-nav-item {% if app.request.attributes.get('_route') == 'app_profil_candidat' %}active{% endif %}">
+                    <a href="{{ path('app_profil_candidat') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') == 'app_profil_candidat' %}active{% endif %}">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Mon profil
                 </a>
