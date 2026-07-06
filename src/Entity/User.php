@@ -29,12 +29,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Length(max: 255, maxMessage: "L'email ne peut pas dépasser {{ limit }} caractères.")]
     private string $email = '';
 
-    /**
-     * Mot de passe haché en bcrypt (coût 12).
-     * Jamais stocké en clair — règle RM-U02.
-     * Pour un compte créé via OAuth (GitHub/LinkedIn), ce champ contient
-     * un hash aléatoire inutilisable : la connexion ne se fait QUE via OAuth.
-     */
     #[ORM\Column(name: 'mdp', type: 'string', length: 255)]
     private string $password = '';
 
@@ -57,14 +51,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'face_id_enabled', type: 'boolean', options: ['default' => false])]
     private bool $faceIdEnabled = false;
 
-    /**
-     * Statut de l'inscription :
-     *  - 'pending_face_id'          : inscription classique, étape Face ID non terminée
-     *  - 'pending_profile_completion' : compte créé via OAuth (GitHub/LinkedIn),
-     *                                    CV/téléphone/localisation non renseignés
-     *  - 'complete'                 : inscription terminée
-     * Pour les entreprises, toujours 'complete'.
-     */
     #[ORM\Column(name: 'inscription_status', type: 'string', length: 30, options: ['default' => 'complete'])]
     private string $inscriptionStatus = 'complete';
 
@@ -73,6 +59,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(name: 'oauth_id', type: 'string', length: 255, nullable: true)]
     private ?string $oauthId = null;
+
+    /**
+     * Secret TOTP (base32), généré lors de l'activation de l'application
+     * d'authentification. Permet de récupérer le mot de passe sans email.
+     */
+    #[ORM\Column(name: 'totp_secret', type: 'string', length: 255, nullable: true)]
+    private ?string $totpSecret = null;
+
+    /**
+     * true si l'utilisateur a confirmé au moins une fois un code valide
+     * après avoir scanné le QR code (donc l'application est bien configurée).
+     */
+    #[ORM\Column(name: 'totp_enabled', type: 'boolean', options: ['default' => false])]
+    private bool $totpEnabled = false;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: ProfilCandidat::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?ProfilCandidat $profilCandidat = null;
@@ -299,5 +299,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function getTotpSecret(): ?string
+    {
+        return $this->totpSecret;
+    }
+
+    public function setTotpSecret(?string $totpSecret): static
+    {
+        $this->totpSecret = $totpSecret;
+        return $this;
+    }
+
+    public function isTotpEnabled(): bool
+    {
+        return $this->totpEnabled;
+    }
+
+    public function setTotpEnabled(bool $totpEnabled): static
+    {
+        $this->totpEnabled = $totpEnabled;
+        return $this;
     }
 }
