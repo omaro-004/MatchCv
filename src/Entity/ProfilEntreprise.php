@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ProfilEntrepriseRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -63,6 +65,19 @@ class ProfilEntreprise
     #[Assert\Url(message: "Le lien du site '{{ value }}' n'est pas une URL valide.")]
     private ?string $lienSite = null;
 
+    /**
+     * Offres publiées par cette entreprise (nouveau — module Offres).
+     * cascade remove : si le profil entreprise est supprimé, ses offres le sont aussi.
+     */
+    #[ORM\OneToMany(mappedBy: 'entreprise', targetEntity: Offre::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['datePublication' => 'DESC'])]
+    private Collection $offres;
+
+    public function __construct()
+    {
+        $this->offres = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -75,25 +90,7 @@ class ProfilEntreprise
 
     public function setUser(?User $user): static
     {
-        if ($this->user === $user) {
-            return $this;
-        }
-
-        if ($this->user !== null) {
-            $previousUser = $this->user;
-            $this->user = null;
-
-            if ($previousUser->getProfilEntreprise() === $this) {
-                $previousUser->setProfilEntreprise(null);
-            }
-        }
-
         $this->user = $user;
-
-        if ($user !== null && $user->getProfilEntreprise() !== $this) {
-            $user->setProfilEntreprise($this);
-        }
-
         return $this;
     }
 
@@ -182,6 +179,33 @@ class ProfilEntreprise
     public function setLienSite(?string $lienSite): static
     {
         $this->lienSite = $lienSite;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Offre>
+     */
+    public function getOffres(): Collection
+    {
+        return $this->offres;
+    }
+
+    public function addOffre(Offre $offre): static
+    {
+        if (!$this->offres->contains($offre)) {
+            $this->offres->add($offre);
+            $offre->setEntreprise($this);
+        }
+        return $this;
+    }
+
+    public function removeOffre(Offre $offre): static
+    {
+        if ($this->offres->removeElement($offre)) {
+            if ($offre->getEntreprise() === $this) {
+                $offre->setEntreprise(null);
+            }
+        }
         return $this;
     }
 }

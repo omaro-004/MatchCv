@@ -1,176 +1,657 @@
+{# templates/candidat/securite.html.twig
+     Onglet Sécurité du dashboard candidat :
+         - Changement de mot de passe (utilisateur déjà connecté)
+         - Récupération du mot de passe par email
+         - Activation / désactivation du Face ID
+         - Activation / désactivation de l'application d'authentification (TOTP)
+
+   Dépendances JS (partie Face ID) : face-api.js, mêmes modèles que
+   face_id.html.twig et verify.html.twig, servis depuis /models/.
+#}
 {% extends 'base.html.twig' %}
 
 {% block title %}Sécurité{% endblock %}
 {% block page_title %}Sécurité{% endblock %}
-{% block page_subtitle %}Gérez la protection de votre compte{% endblock %}
+{% block page_subtitle %}Gérez votre mot de passe et votre authentification biométrique{% endblock %}
 
 {% block body %}
-<div class="card" style="max-width:640px;">
-    <div class="card-header">
-        <div>
-            <div class="card-title">Application d'authentification</div>
-            <div class="card-subtitle">Récupérez votre compte via un code à 6 chiffres, sans passer par l'email</div>
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">
+            {{ form_errors(field) }}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+<div style="display:flex;flex-direction:column;gap:24px;max-width:640px;">
+
+    {# ══════════════ CARTE 1 — CHANGEMENT DE MOT DE PASSE ══════════════ #}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Mot de passe</div>
+                <div class="card-subtitle">Modifiez votre mot de passe de connexion</div>
+            </div>
+            <div class="stat-card-icon accent">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+        </div>
+        <div class="card-body">
+            {{ form_start(form, {'action': path('app_candidat_change_password'), 'attr': {'novalidate': 'novalidate'}}) }}
+
+                <div class="form-group">
+                    <label>{{ form_label(form.currentPassword) }}</label>
+                    {{ form_widget(form.currentPassword, {'attr': {'class': 'form-control', 'placeholder': 'Votre mot de passe actuel', 'autocomplete': 'current-password'}}) }}
+                    {{ _self.field_error(form.currentPassword) }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nouveau mot de passe</label>
+                        {{ form_widget(form.newPassword.first, {'attr': {'class': 'form-control', 'placeholder': '8 caractères minimum', 'autocomplete': 'new-password'}}) }}
+                        {{ _self.field_error(form.newPassword.first) }}
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmer le nouveau mot de passe</label>
+                        {{ form_widget(form.newPassword.second, {'attr': {'class': 'form-control', 'placeholder': 'Répétez le mot de passe', 'autocomplete': 'new-password'}}) }}
+                        {{ _self.field_error(form.newPassword.second) }}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg" style="margin-top:8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    Mettre à jour le mot de passe
+                </button>
+
+            {{ form_end(form) }}
         </div>
     </div>
-    <div class="card-body">
 
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);margin-bottom:20px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-                <div style="width:36px;height:36px;border-radius:10px;background:{{ totp_enabled ? 'rgba(34,197,94,.1)' : 'rgba(148,163,184,.15)' }};display:flex;align-items:center;justify-content:center;">
-                    <svg width="18" height="18" fill="none" stroke="{{ totp_enabled ? 'var(--success)' : 'var(--text-muted)' }}" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                </div>
+
+
+    {# ══════════════ CARTE 3 — FACE ID ══════════════ #}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Reconnaissance faciale (Face ID)</div>
+                <div class="card-subtitle">Sécurisez votre connexion avec une vérification biométrique</div>
+            </div>
+            <div class="stat-card-icon success">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/></svg>
+            </div>
+        </div>
+        <div class="card-body">
+
+            {# ── Toggle ── #}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);">
                 <div>
-                    <div style="font-weight:700;font-size:.9rem;" id="totp-status-label">
+                    <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);margin-bottom:2px;">
+                        Exiger le Face ID à la connexion
+                    </div>
+                    <div id="toggle-description" style="font-size:.78rem;color:var(--text-muted);line-height:1.45;">
+                        {% if face_id_enabled %}
+                            Activé — une vérification faciale sera demandée à chaque connexion
+                        {% else %}
+                            Désactivé — connexion classique par email / mot de passe uniquement
+                        {% endif %}
+                    </div>
+                </div>
+                <label style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;cursor:pointer;">
+                    <input type="checkbox" id="face-id-toggle" style="opacity:0;width:0;height:0;" {{ face_id_enabled ? 'checked' : '' }}>
+                    <span id="toggle-slider" style="
+                        position:absolute;inset:0;
+                        background:{{ face_id_enabled ? 'var(--accent)' : 'var(--border)' }};
+                        border-radius:999px;
+                        transition:background .25s;
+                    ">
+                        <span id="toggle-knob" style="
+                            position:absolute;top:3px;left:3px;
+                            width:20px;height:20px;
+                            background:#fff;
+                            border-radius:50%;
+                            box-shadow:0 1px 4px rgba(0,0,0,.2);
+                            transition:transform .25s;
+                            transform:{{ face_id_enabled ? 'translateX(20px)' : 'translateX(0)' }};
+                        "></span>
+                    </span>
+                </label>
+            </div>
+
+            {# ── Zone de statut du modèle IA (masquée par défaut) ── #}
+            <div id="model-status" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:var(--radius-sm);font-size:.82rem;color:var(--accent);margin-top:18px;">
+                <span id="model-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span>
+                <span id="model-status-text">Chargement du modèle IA de détection faciale…</span>
+            </div>
+
+            {# ── Zone vidéo (capture pour activation) ── #}
+            <div id="video-container" style="position:relative;width:100%;max-width:400px;margin:18px auto 0;border-radius:var(--radius-md);overflow:hidden;background:#0f172a;display:none;">
+                <video id="video" autoplay muted playsinline style="width:100%;display:block;border-radius:var(--radius-md);"></video>
+                <canvas id="overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:150px;height:190px;border:2px dashed rgba(99,102,241,.6);border-radius:50%;pointer-events:none;"></div>
+                <div id="detection-badge" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);padding:5px 14px;border-radius:999px;font-size:.78rem;font-weight:600;background:rgba(15,23,42,.75);color:#e2e8f0;backdrop-filter:blur(4px);white-space:nowrap;">
+                    Positionnez votre visage dans le cadre
+                </div>
+            </div>
+
+            <div id="capture-indicator" style="display:none;max-width:400px;margin:14px auto 0;">
+                <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-secondary);margin-bottom:6px;">
+                    <span>Qualité de capture</span>
+                    <span id="confidence-label">—</span>
+                </div>
+                <div style="height:6px;background:var(--border);border-radius:999px;overflow:hidden;">
+                    <div id="confidence-bar" style="height:100%;width:0%;background:var(--accent);border-radius:999px;transition:width .3s,background .3s;"></div>
+                </div>
+            </div>
+
+            <div id="face-id-actions" style="display:none;flex-direction:column;gap:10px;margin-top:16px;max-width:400px;margin-left:auto;margin-right:auto;">
+                <button id="btn-capture" class="btn btn-primary btn-full" disabled>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/></svg>
+                    <span id="btn-capture-label">Capturer mon visage</span>
+                </button>
+                <button id="btn-cancel" class="btn btn-secondary btn-full" style="font-size:.83rem;">
+                    Annuler
+                </button>
+            </div>
+
+            {# ── Feedback ── #}
+            <div id="feedback" style="display:none;margin-top:16px;padding:12px 16px;border-radius:var(--radius-sm);font-size:.84rem;font-weight:500;"></div>
+
+        </div>
+    </div>
+
+    {# ══════════════ CARTE 4 — APPLICATION D'AUTHENTIFICATION ══════════════ #}
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Application d'authentification</div>
+                <div class="card-subtitle">Activez ou désactivez la récupération par code à 6 chiffres</div>
+            </div>
+            <div class="stat-card-icon accent">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);margin-bottom:18px;">
+                <div>
+                    <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);margin-bottom:2px;" id="totp-status-label">
                         {{ totp_enabled ? 'Activée' : 'Désactivée' }}
                     </div>
-                    <div style="font-size:.78rem;color:var(--text-muted);">Récupération de mot de passe via code à 6 chiffres</div>
+                    <div style="font-size:.78rem;color:var(--text-muted);line-height:1.45;">
+                        Récupération du compte via un code généré par Google Authenticator, Microsoft Authenticator ou Authy.
+                    </div>
+                </div>
+                {% if totp_enabled %}
+                    <button id="btn-disable-totp" class="btn btn-secondary btn-sm">Désactiver</button>
+                {% else %}
+                    <button id="btn-start-totp" class="btn btn-primary btn-sm">Activer</button>
+                {% endif %}
+            </div>
+
+            <div id="totp-setup" style="display:none;">
+                <div style="font-size:.84rem;color:var(--text-secondary);margin-bottom:14px;">
+                    Scannez ce QR code avec votre application d'authentification, puis saisissez le code généré pour confirmer.
+                </div>
+                <div style="display:flex;justify-content:center;margin-bottom:16px;">
+                    <img id="totp-qr" src="" alt="QR Code" style="width:200px;height:200px;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;">
+                </div>
+                <div style="text-align:center;font-size:.76rem;color:var(--text-muted);margin-bottom:16px;">
+                    Impossible de scanner ? Saisissez ce code manuellement :<br>
+                    <code id="totp-secret" style="font-weight:700;letter-spacing:1px;"></code>
+                </div>
+
+                <div class="form-group">
+                    <label for="totp-code">Code de vérification</label>
+                    <input class="form-control" type="text" inputmode="numeric" maxlength="6" id="totp-code" placeholder="000000" style="text-align:center;letter-spacing:6px;font-size:1.2rem;font-weight:700;">
+                </div>
+
+                <div id="totp-feedback" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;"></div>
+
+                <div style="display:flex;gap:10px;">
+                    <button id="btn-confirm-totp" class="btn btn-primary" style="flex:1;">Confirmer et activer</button>
+                    <button id="btn-cancel-totp" class="btn btn-secondary">Annuler</button>
                 </div>
             </div>
-            {% if totp_enabled %}
-                <button id="btn-disable-totp" class="btn btn-secondary btn-sm">Désactiver</button>
-            {% else %}
-                <button id="btn-start-totp" class="btn btn-primary btn-sm">Activer</button>
-            {% endif %}
         </div>
-
-        <div id="totp-setup" style="display:none;">
-            <div style="font-size:.84rem;color:var(--text-secondary);margin-bottom:14px;">
-                Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou Authy, puis saisissez le code généré pour confirmer.
-            </div>
-            <div style="display:flex;justify-content:center;margin-bottom:16px;">
-                <img id="totp-qr" src="" alt="QR Code" style="width:200px;height:200px;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;">
-            </div>
-            <div style="text-align:center;font-size:.76rem;color:var(--text-muted);margin-bottom:16px;">
-                Impossible de scanner ? Saisissez ce code manuellement :<br>
-                <code id="totp-secret" style="font-weight:700;letter-spacing:1px;"></code>
-            </div>
-
-            <div class="form-group">
-                <label for="totp-code">Code de vérification</label>
-                <input class="form-control" type="text" inputmode="numeric" maxlength="6" id="totp-code" placeholder="000000" style="text-align:center;letter-spacing:6px;font-size:1.2rem;font-weight:700;">
-            </div>
-
-            <div id="totp-feedback" style="display:none;margin-bottom:12px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.82rem;font-weight:500;"></div>
-
-            <div style="display:flex;gap:10px;">
-                <button id="btn-confirm-totp" class="btn btn-primary" style="flex:1;">Confirmer et activer</button>
-                <button id="btn-cancel-totp" class="btn btn-secondary">Annuler</button>
-            </div>
-        </div>
-
     </div>
+
 </div>
 
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block javascripts %}
 <script>
+// ============================================================
+//  CONFIGURATION
+// ============================================================
+const MODELS_PATH        = '/models';
+const ENABLE_URL          = '{{ path("app_candidat_face_id_enable") }}';
+const DISABLE_URL         = '{{ path("app_candidat_face_id_disable") }}';
+const CSRF_TOKEN_SETTINGS = '{{ csrf_token("face_id_settings") }}';
+let FACE_ID_CURRENTLY_ENABLED = {{ face_id_enabled ? 'true' : 'false' }};
+
+// ============================================================
+//  ÉTAT
+// ============================================================
+let modelsLoaded       = false;
+let stream             = null;
+let capturedDescriptor = null;
+let detectionInterval  = null;
+let totpSetupStarted   = false;
+
+// ============================================================
+//  DOM
+// ============================================================
 const $ = id => document.getElementById(id);
-const CSRF_GENERATE = '{{ csrf_token("totp_generate") }}';
-const CSRF_CONFIRM  = '{{ csrf_token("totp_confirm") }}';
-const CSRF_DISABLE  = '{{ csrf_token("totp_disable") }}';
-const GENERATE_URL  = '{{ path("app_totp_generate") }}';
-const CONFIRM_URL   = '{{ path("app_totp_confirm") }}';
-const DISABLE_URL   = '{{ path("app_totp_disable") }}';
+const toggle           = $('face-id-toggle');
+const toggleSlider     = $('toggle-slider');
+const toggleKnob       = $('toggle-knob');
+const toggleDesc       = $('toggle-description');
+const modelStatus      = $('model-status');
+const modelStatusText  = $('model-status-text');
+const modelSpinner     = $('model-spinner');
+const videoContainer   = $('video-container');
+const video            = $('video');
+const overlay          = $('overlay');
+const detectionBadge   = $('detection-badge');
+const captureIndicator = $('capture-indicator');
+const confidenceBar    = $('confidence-bar');
+const confidenceLabel  = $('confidence-label');
+const faceIdActions    = $('face-id-actions');
+const btnCapture       = $('btn-capture');
+const btnCaptureLabel  = $('btn-capture-label');
+const btnCancel        = $('btn-cancel');
+const feedbackDiv      = $('feedback');
+const totpStatusLabel  = $('totp-status-label');
+const btnStartTotp     = $('btn-start-totp');
+const btnDisableTotp   = $('btn-disable-totp');
+const totpSetup        = $('totp-setup');
+const totpFeedback     = $('totp-feedback');
+const totpQr           = $('totp-qr');
+const totpSecret       = $('totp-secret');
+const totpCode         = $('totp-code');
+const btnConfirmTotp   = $('btn-confirm-totp');
+const btnCancelTotp    = $('btn-cancel-totp');
 
-const btnStart   = $('btn-start-totp');
-const btnDisable = $('btn-disable-totp');
-const setupBox   = $('totp-setup');
-const feedback   = $('totp-feedback');
+const TOTP_GENERATE_URL = '{{ path("app_totp_generate") }}';
+const TOTP_CONFIRM_URL  = '{{ path("app_totp_confirm") }}';
+const TOTP_DISABLE_URL  = '{{ path("app_totp_disable") }}';
+const TOTP_CSRF_GENERATE = '{{ csrf_token("totp_generate") }}';
+const TOTP_CSRF_CONFIRM  = '{{ csrf_token("totp_confirm") }}';
+const TOTP_CSRF_DISABLE  = '{{ csrf_token("totp_disable") }}';
 
-function showFeedback(msg, type) {
-    feedback.style.display = 'block';
-    feedback.textContent = msg;
-    feedback.style.background = type === 'success' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)';
-    feedback.style.color = type === 'success' ? '#15803d' : '#b91c1c';
+// ============================================================
+//  HELPERS UI
+// ============================================================
+function showFeedback(message, type) {
+    feedbackDiv.style.display    = 'block';
+    feedbackDiv.textContent      = message;
+    feedbackDiv.style.background = type === 'success' ? 'rgba(34,197,94,.1)'  : 'rgba(239,68,68,.1)';
+    feedbackDiv.style.border     = type === 'success' ? '1px solid rgba(34,197,94,.25)' : '1px solid rgba(239,68,68,.25)';
+    feedbackDiv.style.color      = type === 'success' ? '#15803d' : '#b91c1c';
 }
 
-async function readJsonResponse(res) {
-    const contentType = res.headers.get('content-type') || '';
+function setToggleVisual(enabled) {
+    toggleSlider.style.background = enabled ? 'var(--accent)' : 'var(--border)';
+    toggleKnob.style.transform    = enabled ? 'translateX(20px)' : 'translateX(0)';
+    toggleDesc.textContent        = enabled
+        ? 'Activé — une vérification faciale sera demandée à chaque connexion'
+        : 'Désactivé — connexion classique par email / mot de passe uniquement';
+}
 
-    if (!contentType.includes('application/json')) {
-        const text = await res.text();
-        throw new Error(text || 'Réponse inattendue du serveur.');
+function resetCaptureUI() {
+    stopCamera();
+    videoContainer.style.display   = 'none';
+    captureIndicator.style.display = 'none';
+    faceIdActions.style.display    = 'none';
+    modelStatus.style.display      = 'none';
+    capturedDescriptor = null;
+}
+
+function showTotpFeedback(message, type) {
+    totpFeedback.style.display = 'block';
+    totpFeedback.textContent = message;
+    totpFeedback.style.background = type === 'success' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)';
+    totpFeedback.style.color = type === 'success' ? '#15803d' : '#b91c1c';
+}
+
+function showTotpSetup() {
+    totpSetup.style.display = 'block';
+    if (btnStartTotp) {
+        btnStartTotp.style.display = 'none';
+    }
+}
+
+function hideTotpSetup() {
+    totpSetup.style.display = 'none';
+    if (btnStartTotp && !FACE_ID_CURRENTLY_ENABLED) {
+        btnStartTotp.style.display = 'inline-flex';
+    }
+    if (totpFeedback) {
+        totpFeedback.style.display = 'none';
+    }
+    if (totpCode) {
+        totpCode.value = '';
+    }
+}
+
+// ============================================================
+//  CHARGEMENT DES MODÈLES face-api.js
+// ============================================================
+async function loadModelsIfNeeded() {
+    if (modelsLoaded) return true;
+    modelStatus.style.display = 'flex';
+    try {
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_PATH),
+            faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_PATH),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODELS_PATH),
+        ]);
+        modelsLoaded = true;
+        modelSpinner.style.display = 'none';
+        modelStatusText.textContent = 'Modèle prêt — démarrage de la caméra…';
+        modelStatus.style.background = 'rgba(34,197,94,.07)';
+        modelStatus.style.borderColor = 'rgba(34,197,94,.2)';
+        modelStatus.style.color = 'var(--success)';
+        return true;
+    } catch (err) {
+        console.error('Erreur chargement modèles face-api.js :', err);
+        modelStatusText.textContent = 'Impossible de charger le modèle IA. Vérifiez public/models/.';
+        modelStatus.style.color = 'var(--danger)';
+        modelSpinner.style.display = 'none';
+        return false;
+    }
+}
+
+// ============================================================
+//  CAMÉRA
+// ============================================================
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 400 }, height: { ideal: 320 }, facingMode: 'user' },
+            audio: false,
+        });
+        video.srcObject = stream;
+        await new Promise(resolve => { video.onloadedmetadata = resolve; });
+        videoContainer.style.display   = 'block';
+        captureIndicator.style.display = 'block';
+        faceIdActions.style.display    = 'flex';
+        overlay.width  = video.videoWidth;
+        overlay.height = video.videoHeight;
+        startDetectionLoop();
+    } catch (err) {
+        console.warn('Caméra inaccessible :', err);
+        showFeedback('Impossible d\'accéder à la caméra. Vérifiez les autorisations de votre navigateur.', 'error');
+        resetToggleOff();
+    }
+}
+
+function stopCamera() {
+    if (detectionInterval) { clearInterval(detectionInterval); detectionInterval = null; }
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    video.srcObject = null;
+}
+
+function startDetectionLoop() {
+    const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+
+    detectionInterval = setInterval(async () => {
+        if (!modelsLoaded || video.readyState < 2) return;
+
+        const detection = await faceapi
+            .detectSingleFace(video, options)
+            .withFaceLandmarks(true)
+            .withFaceDescriptor();
+
+        const ctx = overlay.getContext('2d');
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+        if (detection) {
+            const { x, y, width, height } = detection.detection.box;
+            const sx = overlay.width / video.videoWidth;
+            const sy = overlay.height / video.videoHeight;
+            ctx.strokeStyle = 'rgba(34,197,94,.9)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x * sx, y * sy, width * sx, height * sy);
+
+            const pct = Math.round(detection.detection.score * 100);
+            confidenceBar.style.width      = pct + '%';
+            confidenceBar.style.background = pct > 70 ? 'var(--success)' : 'var(--warning)';
+            confidenceLabel.textContent    = pct + '%';
+
+            detectionBadge.textContent = pct > 70 ? '✓ Visage détecté — cliquez sur "Capturer"' : 'Approchez-vous de la caméra';
+            detectionBadge.style.color = pct > 70 ? '#86efac' : '#fcd34d';
+            btnCapture.disabled = pct < 60;
+        } else {
+            confidenceBar.style.width   = '0%';
+            confidenceLabel.textContent = '—';
+            detectionBadge.textContent  = 'Positionnez votre visage dans le cadre';
+            detectionBadge.style.color  = '#e2e8f0';
+            btnCapture.disabled = true;
+        }
+    }, 250);
+}
+
+// ============================================================
+//  CAPTURE DU DESCRIPTEUR
+// ============================================================
+async function captureFaceDescriptor() {
+    btnCaptureLabel.textContent = 'Capture en cours…';
+    btnCapture.disabled = true;
+
+    const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+    const measurements = [];
+    for (let i = 0; i < 3; i++) {
+        const detection = await faceapi.detectSingleFace(video, options).withFaceLandmarks(true).withFaceDescriptor();
+        if (detection) measurements.push(detection.descriptor);
+        await new Promise(r => setTimeout(r, 200));
     }
 
-    return res.json();
+    if (measurements.length === 0) {
+        showFeedback('Aucun visage détecté. Repositionnez-vous et réessayez.', 'error');
+        btnCaptureLabel.textContent = 'Capturer mon visage';
+        btnCapture.disabled = false;
+        return;
+    }
+
+    const avg = new Float32Array(128);
+    for (const d of measurements) {
+        for (let i = 0; i < 128; i++) avg[i] += d[i] / measurements.length;
+    }
+    capturedDescriptor = Array.from(avg);
+
+    stopCamera();
+    btnCaptureLabel.textContent = 'Activation en cours…';
+
+    // Envoi immédiat au serveur pour activer le Face ID
+    try {
+        const response = await fetch(ENABLE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN_SETTINGS,
+            },
+            body: JSON.stringify({ descriptor: capturedDescriptor }),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            FACE_ID_CURRENTLY_ENABLED = true;
+            showFeedback(data.message, 'success');
+            resetCaptureUI();
+            setToggleVisual(true);
+            toggle.checked = true;
+        } else {
+            showFeedback(data.error || 'Une erreur est survenue.', 'error');
+            resetToggleOff();
+        }
+    } catch (err) {
+        console.error(err);
+        showFeedback('Erreur réseau. Réessayez.', 'error');
+        resetToggleOff();
+    }
 }
 
-if (btnStart) {
-    btnStart.addEventListener('click', async () => {
-        try {
-            const res = await fetch(GENERATE_URL, {
-                method: 'POST',
-                headers: { 'X-CSRF-Token': CSRF_GENERATE },
-            });
-            const data = await readJsonResponse(res);
+function resetToggleOff() {
+    resetCaptureUI();
+    toggle.checked = false;
+    setToggleVisual(false);
+}
 
-            if (!res.ok) {
+// ============================================================
+//  DÉSACTIVATION
+// ============================================================
+async function disableFaceId() {
+    try {
+        const response = await fetch(DISABLE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN_SETTINGS,
+            },
+            body: JSON.stringify({}),
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            FACE_ID_CURRENTLY_ENABLED = false;
+            showFeedback(data.message, 'success');
+            setToggleVisual(false);
+        } else {
+            showFeedback(data.error || 'Une erreur est survenue.', 'error');
+            toggle.checked = true;
+            setToggleVisual(true);
+        }
+    } catch (err) {
+        console.error(err);
+        showFeedback('Erreur réseau. Réessayez.', 'error');
+        toggle.checked = true;
+        setToggleVisual(true);
+    }
+}
+
+// ============================================================
+//  ÉVÉNEMENTS
+// ============================================================
+toggle.addEventListener('change', async () => {
+    if (toggle.checked && !FACE_ID_CURRENTLY_ENABLED) {
+        // ── Activation demandée : ouvrir la capture caméra ──
+        setToggleVisual(true);
+        feedbackDiv.style.display = 'none';
+        const ok = await loadModelsIfNeeded();
+        if (ok) await startCamera();
+
+    } else if (!toggle.checked && FACE_ID_CURRENTLY_ENABLED) {
+        // ── Désactivation demandée : confirmation ──
+        if (!confirm('Désactiver le Face ID ? Vous ne serez plus vérifié par reconnaissance faciale à la connexion.')) {
+            toggle.checked = true;
+            setToggleVisual(true);
+            return;
+        }
+        await disableFaceId();
+
+    } else if (!toggle.checked && !FACE_ID_CURRENTLY_ENABLED) {
+        // Cas : l'utilisateur annule pendant la capture (toggle repassé à off)
+        resetCaptureUI();
+        setToggleVisual(false);
+    }
+});
+
+btnCapture.addEventListener('click', captureFaceDescriptor);
+
+btnCancel.addEventListener('click', () => {
+    resetToggleOff();
+});
+
+if (btnStartTotp) {
+    btnStartTotp.addEventListener('click', async () => {
+        try {
+            const response = await fetch(TOTP_GENERATE_URL, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': TOTP_CSRF_GENERATE },
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
                 throw new Error(data.error || 'Impossible de générer le QR code.');
             }
 
-            if (data.qr) {
-                $('totp-qr').src = data.qr;
-                $('totp-secret').textContent = data.secret;
-                setupBox.style.display = 'block';
-                btnStart.style.display = 'none';
-            }
+            totpQr.src = data.qr;
+            totpSecret.textContent = data.secret;
+            showTotpSetup();
         } catch (error) {
-            showFeedback(error.message || 'Impossible de générer le QR code.', 'error');
+            showTotpFeedback(error.message || 'Impossible de générer le QR code.', 'error');
         }
     });
 }
 
-if ($('btn-cancel-totp')) {
-    $('btn-cancel-totp').addEventListener('click', () => {
-        setupBox.style.display = 'none';
-        if (btnStart) btnStart.style.display = 'inline-flex';
+if (btnCancelTotp) {
+    btnCancelTotp.addEventListener('click', () => {
+        hideTotpSetup();
     });
 }
 
-if ($('btn-confirm-totp')) {
-    $('btn-confirm-totp').addEventListener('click', async () => {
-        const code = $('totp-code').value.trim();
+if (btnConfirmTotp) {
+    btnConfirmTotp.addEventListener('click', async () => {
+        const code = (totpCode.value || '').trim();
         if (code.length !== 6) {
-            showFeedback('Saisissez un code à 6 chiffres.', 'error');
+            showTotpFeedback('Saisissez un code à 6 chiffres.', 'error');
             return;
         }
+
         try {
-            const res = await fetch(CONFIRM_URL, {
+            const response = await fetch(TOTP_CONFIRM_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_CONFIRM },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': TOTP_CSRF_CONFIRM,
+                },
                 body: JSON.stringify({ code }),
             });
-            const data = await readJsonResponse(res);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Code invalide.');
+            }
 
             if (data.success) {
-                showFeedback('Application d\'authentification activée !', 'success');
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                showFeedback(data.error || 'Code invalide.', 'error');
+                window.location.reload();
             }
         } catch (error) {
-            showFeedback(error.message || 'Code invalide.', 'error');
+            showTotpFeedback(error.message || 'Code invalide.', 'error');
         }
     });
 }
 
-if (btnDisable) {
-    btnDisable.addEventListener('click', async () => {
-        if (!confirm('Désactiver la récupération par application d\'authentification ?')) return;
-        try {
-            const res = await fetch(DISABLE_URL, {
-                method: 'POST',
-                headers: { 'X-CSRF-Token': CSRF_DISABLE },
-            });
-            const data = await readJsonResponse(res);
+if (btnDisableTotp) {
+    btnDisableTotp.addEventListener('click', async () => {
+        if (!confirm('Désactiver la récupération par application d\'authentification ?')) {
+            return;
+        }
 
-            if (!res.ok) {
+        try {
+            const response = await fetch(TOTP_DISABLE_URL, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': TOTP_CSRF_DISABLE },
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
                 throw new Error(data.error || 'Impossible de désactiver TOTP.');
             }
 
-            if (data.success) window.location.reload();
+            if (data.success) {
+                window.location.reload();
+            }
         } catch (error) {
-            showFeedback(error.message || 'Impossible de désactiver TOTP.', 'error');
+            showTotpFeedback(error.message || 'Impossible de désactiver TOTP.', 'error');
         }
     });
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 {% endblock %}

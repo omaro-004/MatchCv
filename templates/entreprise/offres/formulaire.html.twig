@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ mode == 'creation' ? 'Créer une offre' : "Modifier l'offre" }}{% endblock %}
+{% block page_title %}{{ mode == 'creation' ? 'Créer une offre' : "Modifier l'offre" }}{% endblock %}
+{% block page_subtitle %}{{ mode == 'creation' ? 'Publiez une nouvelle offre pour attirer des candidats' : 'Mettez à jour les informations de votre offre' }}{% endblock %}
+
+{% block body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">{{ form_errors(field) }}</div>
+    {% endif %}
+{% endmacro %}
+
+<div class="card" style="max-width:720px;padding:28px;">
+
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+        <div class="form-group">
+            <label>{{ form_label(form.titre) }}</label>
+            {{ form_widget(form.titre, {'attr': {'class': 'form-control', 'placeholder': 'Ex : Développeur Full Stack Symfony'}}) }}
+            {{ _self.field_error(form.titre) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.description) }}</label>
+            {{ form_widget(form.description, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.description) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.competencesRequises) }}</label>
+            {{ form_widget(form.competencesRequises, {'attr': {'class': 'form-control'}}) }}
+            <div class="form-hint">Séparez chaque compétence par une virgule — elles seront utilisées pour le matching IA avec les CV des candidats.</div>
+            {{ _self.field_error(form.competencesRequises) }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.typeContrat) }}</label>
+                {{ form_widget(form.typeContrat, {'attr': {'class': 'form-control filter-select', 'style': 'cursor:pointer;'}}) }}
+                {{ _self.field_error(form.typeContrat) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.dureeContrat) }}</label>
+                {{ form_widget(form.dureeContrat, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.dureeContrat) }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.localisation) }}</label>
+                {{ form_widget(form.localisation, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.localisation) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.modeTravail) }}</label>
+                {{ form_widget(form.modeTravail, {'attr': {'class': 'form-control filter-select', 'style': 'cursor:pointer;'}}) }}
+                {{ _self.field_error(form.modeTravail) }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.salaire) }}</label>
+                {{ form_widget(form.salaire, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.salaire) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.dateDebut) }}</label>
+                {{ form_widget(form.dateDebut, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.dateDebut) }}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <a href="{{ path('app_entreprise_offres_liste') }}" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</a>
+            <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center;">
+                {{ mode == 'creation' ? "Publier l'offre" : 'Enregistrer les modifications' }}
+            </button>
+        </div>
+
+    {{ form_end(form) }}
+
+</div>
+
+{% endblock %}

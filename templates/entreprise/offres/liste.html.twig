@@ -1,0 +1,191 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes offres{% endblock %}
+{% block page_title %}Mes offres actives{% endblock %}
+{% block page_subtitle %}{{ offres|length }} offre{{ offres|length > 1 ? 's' : '' }} active{{ offres|length > 1 ? 's' : '' }} · Gérez vos publications{% endblock %}
+
+{% block body %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;gap:8px;">
+        <a href="{{ path('app_entreprise_offres_liste') }}" class="btn btn-primary btn-sm" style="border-radius:999px;">Actives</a>
+        <a href="{{ path('app_entreprise_offres_archivees') }}" class="btn btn-secondary btn-sm" style="border-radius:999px;">Archivées</a>
+    </div>
+    <a href="{{ path('app_entreprise_offre_creer') }}" class="btn btn-primary btn-sm" style="gap:5px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Créer une offre
+    </a>
+</div>
+
+{% if offres|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">📭</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">Aucune offre active pour le moment</div>
+        <div style="color:var(--text-secondary);font-size:.85rem;margin-bottom:20px;">Publiez votre première offre pour commencer à recevoir des candidatures.</div>
+        <a href="{{ path('app_entreprise_offre_creer') }}" class="btn btn-primary btn-sm" style="display:inline-flex;">Créer une offre</a>
+    </div>
+{% else %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;">
+        {% for offre in offres %}
+        <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px;" data-offre-id="{{ offre.id }}">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                <div>
+                    <div style="font-weight:700;font-size:.98rem;color:var(--text-primary);margin-bottom:4px;">{{ offre.titre }}</div>
+                    <div style="font-size:.76rem;color:var(--text-muted);">Publiée le {{ offre.datePublication|date('d/m/Y') }}</div>
+                </div>
+                <span class="badge badge-success" style="white-space:nowrap;">● Active</span>
+            </div>
+
+            <div class="offer-meta" style="margin-bottom:0;">
+                <span class="offer-meta-item">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                    {{ offre.localisation }}
+                </span>
+                <span class="offer-meta-item">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ offre.typeContratLabel }}{% if offre.dureeContrat %} · {{ offre.dureeContrat }}{% endif %}
+                </span>
+                {% if offre.salaire %}
+                    <span class="offer-salary">{{ offre.salaire|number_format(0, ',', ' ') }} €</span>
+                {% endif %}
+            </div>
+
+            <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">{{ offre.modeTravailLabel }}</div>
+
+            {% if offre.competencesRequisesArray|length > 0 %}
+            <div class="offer-tags">
+                {% for skill in offre.competencesRequisesArray %}
+                    <span class="tag">{{ skill }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div style="display:flex;gap:8px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border);">
+                <a href="{{ path('app_entreprise_offre_modifier', {id: offre.id}) }}" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;">Modifier</a>
+                <button type="button" class="btn btn-secondary btn-sm btn-archiver" style="flex:1;justify-content:center;color:var(--danger);border-color:rgba(239,68,68,.3);" data-offre-id="{{ offre.id }}" data-offre-titre="{{ offre.titre|e('html_attr') }}">
+                    Archiver
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{# ── MODALE D'ARCHIVAGE ── #}
+<div id="archive-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:440px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Archiver l'offre</div>
+        <div id="archive-modal-titre" style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;"></div>
+
+        <div class="form-group">
+            <label>Motif de l'archivage</label>
+            <select id="archive-motif" class="form-control filter-select" style="cursor:pointer;width:100%;">
+                <option value="poste_pourvu">Poste pourvu</option>
+                <option value="duree_terminee">Durée du contrat terminée</option>
+                <option value="autre">Autre motif</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="archive-details-group" style="display:none;">
+            <label>Précisez le motif</label>
+            <textarea id="archive-details" class="form-control" rows="3" placeholder="Expliquez la raison de l'archivage..."></textarea>
+        </div>
+
+        <div id="archive-error" style="display:none;color:var(--danger);font-size:.8rem;margin-bottom:12px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="archive-cancel" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="archive-confirm" class="btn btn-danger" style="flex:1;justify-content:center;">Confirmer l'archivage</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const backdrop      = document.getElementById('archive-modal-backdrop');
+    const modalTitre    = document.getElementById('archive-modal-titre');
+    const motifSelect   = document.getElementById('archive-motif');
+    const detailsGroup  = document.getElementById('archive-details-group');
+    const detailsInput  = document.getElementById('archive-details');
+    const errorDiv      = document.getElementById('archive-error');
+    const btnCancel     = document.getElementById('archive-cancel');
+    const btnConfirm    = document.getElementById('archive-confirm');
+
+    const CSRF_TOKEN = '{{ csrf_token("offre_archiver") }}';
+
+    let currentOffreId = null;
+
+    function openModal(offreId, titre) {
+        currentOffreId = offreId;
+        modalTitre.textContent = 'Offre : « ' + titre + ' »';
+        motifSelect.value = 'poste_pourvu';
+        detailsGroup.style.display = 'none';
+        detailsInput.value = '';
+        errorDiv.style.display = 'none';
+        backdrop.style.display = 'flex';
+    }
+
+    function closeModal() {
+        backdrop.style.display = 'none';
+        currentOffreId = null;
+    }
+
+    document.querySelectorAll('.btn-archiver').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openModal(btn.dataset.offreId, btn.dataset.offreTitre);
+        });
+    });
+
+    motifSelect.addEventListener('change', function () {
+        detailsGroup.style.display = motifSelect.value === 'autre' ? 'block' : 'none';
+    });
+
+    btnCancel.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) closeModal(); });
+
+    btnConfirm.addEventListener('click', async function () {
+        if (!currentOffreId) return;
+
+        const motif = motifSelect.value;
+        const details = detailsInput.value.trim();
+
+        if (motif === 'autre' && details === '') {
+            errorDiv.textContent = 'Merci de préciser le motif.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Archivage en cours…';
+
+        try {
+            const response = await fetch('/entreprise/offres/' + currentOffreId + '/archiver', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ motif: motif, details: details }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.location.reload();
+            } else {
+                errorDiv.textContent = data.error || 'Une erreur est survenue.';
+                errorDiv.style.display = 'block';
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = 'Confirmer l\'archivage';
+            }
+        } catch (err) {
+            errorDiv.textContent = 'Erreur réseau. Réessayez.';
+            errorDiv.style.display = 'block';
+            btnConfirm.disabled = false;
+            btnConfirm.textContent = 'Confirmer l\'archivage';
+        }
+    });
+})();
+</script>
+
+{% endblock %}

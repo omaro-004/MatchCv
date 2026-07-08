@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Offres archivées{% endblock %}
+{% block page_title %}Offres archivées{% endblock %}
+{% block page_subtitle %}{{ offres|length }} offre{{ offres|length > 1 ? 's' : '' }} archivée{{ offres|length > 1 ? 's' : '' }}{% endblock %}
+
+{% block body %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;gap:8px;">
+        <a href="{{ path('app_entreprise_offres_liste') }}" class="btn btn-secondary btn-sm" style="border-radius:999px;">Actives</a>
+        <a href="{{ path('app_entreprise_offres_archivees') }}" class="btn btn-primary btn-sm" style="border-radius:999px;">Archivées</a>
+    </div>
+    <a href="{{ path('app_entreprise_offre_creer') }}" class="btn btn-primary btn-sm" style="gap:5px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Créer une offre
+    </a>
+</div>
+
+{% if offres|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">🗄️</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">Aucune offre archivée</div>
+        <div style="color:var(--text-secondary);font-size:.85rem;">Les offres que vous archivez apparaîtront ici avec leur motif d'archivage.</div>
+    </div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Offre</th>
+                    <th>Contrat</th>
+                    <th>Motif d'archivage</th>
+                    <th>Date d'archivage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offre in offres %}
+                <tr>
+                    <td>
+                        <div style="font-weight:600;color:var(--text-primary);">{{ offre.titre }}</div>
+                        <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">{{ offre.localisation }} · Publiée le {{ offre.datePublication|date('d/m/Y') }}</div>
+                    </td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ offre.typeContratLabel }}{% if offre.dureeContrat %} · {{ offre.dureeContrat }}{% endif %}</td>
+                    <td>
+                        <span class="badge badge-neutral">{{ offre.motifArchivageLabel }}</span>
+                        {% if offre.motifArchivage == 'autre' and offre.motifArchivageDetails %}
+                            <div style="font-size:.76rem;color:var(--text-muted);margin-top:4px;max-width:260px;">{{ offre.motifArchivageDetails }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ offre.dateArchivage ? offre.dateArchivage|date('d/m/Y') : '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+{% endblock %}

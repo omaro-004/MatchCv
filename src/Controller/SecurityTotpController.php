@@ -24,15 +24,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_CANDIDAT')]
 class SecurityTotpController extends AbstractController
 {
-    #[Route('/candidat/securite', name: 'app_candidat_securite', methods: ['GET'])]
+    #[Route('/candidat/securite/totp', name: 'app_candidat_securite_totp', methods: ['GET'])]
     public function index(): Response
     {
-        /** @var User $user */
-        $user = $this->getUser();
-
-        return $this->render('candidat/securite.html.twig', [
-            'totp_enabled' => $user->isTotpEnabled(),
-        ]);
+        return $this->redirectToRoute('app_candidat_securite');
     }
 
     /**
