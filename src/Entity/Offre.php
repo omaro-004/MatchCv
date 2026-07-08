@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\OffreRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -45,17 +47,9 @@ class Offre
     #[Assert\Length(min: 20, minMessage: 'La description doit contenir au moins {{ limit }} caractères.')]
     private string $description = '';
 
-    /**
-     * Compétences demandées, stockées sous forme de texte séparé par des virgules.
-     * Utilisées ultérieurement par le moteur de matching IA (comparaison avec le CV parsé).
-     */
     #[ORM\Column(name: 'competences_requises', type: 'text', nullable: true)]
     private ?string $competencesRequises = null;
 
-    /**
-     * Aligné sur ProfilCandidat::typeContrat ('stage' | 'emploi') pour permettre
-     * un matching direct avec la préférence du candidat.
-     */
     #[ORM\Column(
         name: 'type_contrat',
         type: 'string',
@@ -114,6 +108,17 @@ class Offre
 
     #[ORM\Column(name: 'date_archivage', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $dateArchivage = null;
+
+    /**
+     * Candidatures reçues pour cette offre (nouveau — fondation du module stats).
+     */
+    #[ORM\OneToMany(mappedBy: 'offre', targetEntity: Candidature::class, cascade: ['remove'], orphanRemoval: true)]
+    private Collection $candidatures;
+
+    public function __construct()
+    {
+        $this->candidatures = new ArrayCollection();
+    }
 
     #[ORM\PrePersist]
     public function setDatePublicationOnCreate(): void
@@ -176,10 +181,6 @@ class Offre
         return $this;
     }
 
-    /**
-     * Retourne les compétences sous forme de tableau nettoyé, prêt à afficher
-     * en tags ou à envoyer au futur moteur de matching.
-     */
     public function getCompetencesRequisesArray(): array
     {
         if ($this->competencesRequises === null || trim($this->competencesRequises) === '') {
@@ -333,9 +334,6 @@ class Offre
         return $this->dateArchivage;
     }
 
-    /**
-     * Archive l'offre avec un motif obligatoire (RM métier "offre archivée").
-     */
     public function archiver(string $motif, ?string $details = null): static
     {
         if (!in_array($motif, self::MOTIFS_ARCHIVAGE, true)) {
@@ -347,6 +345,33 @@ class Offre
         $this->motifArchivageDetails = $details;
         $this->dateArchivage = new \DateTimeImmutable();
 
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Candidature>
+     */
+    public function getCandidatures(): Collection
+    {
+        return $this->candidatures;
+    }
+
+    public function addCandidature(Candidature $candidature): static
+    {
+        if (!$this->candidatures->contains($candidature)) {
+            $this->candidatures->add($candidature);
+            $candidature->setOffre($this);
+        }
+        return $this;
+    }
+
+    public function removeCandidature(Candidature $candidature): static
+    {
+        if ($this->candidatures->removeElement($candidature)) {
+            if ($candidature->getOffre() === $this) {
+                $candidature->setOffre(null);
+            }
+        }
         return $this;
     }
 }

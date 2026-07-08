@@ -1,13 +1,15 @@
 <?php
- 
+
 namespace App\Controller;
- 
+
+use App\Entity\User;
+use App\Service\EntrepriseStatsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
- 
+
 class UserController extends AbstractController
 {
     /**
@@ -21,7 +23,7 @@ class UserController extends AbstractController
         }
         return $this->redirectToRoute('app_inscription_choice');
     }
- 
+
     /**
      * Redirige vers le dashboard selon le rôle de l'utilisateur connecté.
      */
@@ -29,15 +31,15 @@ class UserController extends AbstractController
     public function dashboardRedirect(): Response
     {
         $user = $this->getUser();
- 
+
         if ($user === null) {
             return $this->redirectToRoute('app_login');
         }
- 
+
         if (!method_exists($user, 'getRole')) {
             return new Response('Utilisateur invalide.', Response::HTTP_FORBIDDEN);
         }
- 
+
         return match ($user->getRole()) {
             'admin'     => $this->redirectToRoute('app_admin_dashboard'),
             'entreprise'=> $this->redirectToRoute('app_entreprise_dashboard'),
@@ -45,7 +47,7 @@ class UserController extends AbstractController
             default     => new Response('Rôle utilisateur non pris en charge.', Response::HTTP_FORBIDDEN),
         };
     }
- 
+
     /**
      * Dashboard candidat — ROLE_CANDIDAT requis (règle RM-R01).
      */
@@ -55,17 +57,31 @@ class UserController extends AbstractController
     {
         return $this->render('candidat_dashboard.html.twig');
     }
- 
+
     /**
      * Dashboard entreprise — ROLE_ENTREPRISE requis (règle RM-R01).
+     * Affiche des statistiques réelles (offres, candidatures, matching)
+     * calculées via EntrepriseStatsService.
      */
     #[Route('/entreprise/dashboard', name: 'app_entreprise_dashboard', methods: ['GET'])]
     #[IsGranted('ROLE_ENTREPRISE')]
-    public function entrepriseDashboard(): Response
+    public function entrepriseDashboard(EntrepriseStatsService $statsService): Response
     {
-        return $this->render('entreprise_dashboard.html.twig');
+        /** @var User $user */
+        $user = $this->getUser();
+        $profil = $user->getProfilEntreprise();
+
+        if (!$profil) {
+            throw $this->createNotFoundException('Profil entreprise introuvable.');
+        }
+
+        $stats = $statsService->computeStats($profil);
+
+        return $this->render('entreprise_dashboard.html.twig', [
+            'stats' => $stats,
+        ]);
     }
- 
+
     /**
      * Dashboard admin — ROLE_ADMIN requis (règle RM-R01).
      */

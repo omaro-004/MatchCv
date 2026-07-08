@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; color: #0f172a; font-size: 12px; }
+        h1 { font-size: 20px; margin-bottom: 4px; color: #4f46e5; }
+        .subtitle { font-size: 11px; color: #64748b; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th, td { border: 1px solid #e8eaf0; padding: 8px 10px; text-align: left; font-size: 11px; }
+        th { background: #f8f9fc; font-weight: bold; }
+        .section-title { font-size: 14px; font-weight: bold; margin: 20px 0 8px; color: #0f172a; }
+        .kpi-table td { font-size: 13px; }
+        .kpi-table .value { font-weight: bold; color: #4f46e5; text-align: right; }
+    </style>
+</head>
+<body>
+
+    <h1>Statistiques MatchCV</h1>
+    <div class="subtitle">{{ entreprise.raisonSociale }} · Généré le {{ dateExport|date('d/m/Y à H:i') }}</div>
+
+    <div class="section-title">Indicateurs clés</div>
+    <table class="kpi-table">
+        <tr><td>Offres actives</td><td class="value">{{ stats.offres_actives }}</td></tr>
+        <tr><td>Offres archivées</td><td class="value">{{ stats.offres_archivees }}</td></tr>
+        <tr><td>Candidatures totales</td><td class="value">{{ stats.candidatures_totales }}</td></tr>
+        <tr><td>Score moyen de matching</td><td class="value">{{ stats.score_matching_moyen is not null ? stats.score_matching_moyen ~ ' %' : 'N/A' }}</td></tr>
+    </table>
+
+    <div class="section-title">Offres par type de contrat</div>
+    <table>
+        <thead><tr><th>Type</th><th>Nombre</th></tr></thead>
+        <tbody>
+        {% for type, total in stats.offres_par_type_contrat %}
+            <tr><td>{{ type|capitalize }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section-title">Offres par mode de travail</div>
+    <table>
+        <thead><tr><th>Mode</th><th>Nombre</th></tr></thead>
+        <tbody>
+        {% for mode, total in stats.offres_par_mode_travail %}
+            <tr><td>{{ mode|replace({'_': ' '})|capitalize }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section-title">Candidatures par statut</div>
+    <table>
+        <thead><tr><th>Statut</th><th>Nombre</th></tr></thead>
+        <tbody>
+        {% for statut, total in stats.candidatures_par_statut %}
+            <tr><td>{{ statut|replace({'_': ' '})|capitalize }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="section-title">Publications par mois</div>
+    <table>
+        <thead><tr><th>Mois</th><th>Offres publiées</th></tr></thead>
+        <tbody>
+        {% for mois, total in stats.publications_par_mois %}
+            <tr><td>{{ mois }}</td><td>{{ total }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% if stats.top_offres|length > 0 %}
+    <div class="section-title">Top offres par nombre de candidatures</div>
+    <table>
+        <thead><tr><th>Offre</th><th>Candidatures</th></tr></thead>
+        <tbody>
+        {% for offre in stats.top_offres %}
+            <tr><td>{{ offre.titre }}</td><td>{{ offre.total }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+</body>
+</html>
