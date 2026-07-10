@@ -12,6 +12,7 @@ use App\Form\CandidatureType;
 use App\Repository\AvisEntrepriseRepository;
 use App\Repository\CandidatureRepository;
 use App\Repository\OffreRepository;
+use App\Service\MatchingPreviewService;
 use App\Service\MatchingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -91,6 +92,7 @@ class OffreCandidatController extends AbstractController
         EntityManagerInterface $em,
         CandidatureRepository $candidatureRepository,
         MatchingService $matchingService,
+        MatchingPreviewService $matchingPreviewService,
         SluggerInterface $slugger
     ): Response {
         $profil = $this->getProfilCandidatOrThrow();
@@ -138,8 +140,31 @@ class OffreCandidatController extends AbstractController
             $em->persist($candidature);
             $em->flush();
 
-            // RM-C03 : calcul du score IA de façon synchrone au dépôt de la candidature
-            $result = $matchingService->computeScore($profil, $offre);
+            // RM-C03 : calcul du score IA de façon synchrone au dépôt de la candidature.
+            //
+            // NOUVEAU : si le candidat a déjà vu cette offre dans ses
+            // recommandations, un score IA "preview" a déjà été calculé et mis
+            // en cache (MatchingPreviewService). On le réutilise TEL QUEL au
+            // lieu d'en recalculer un nouveau, pour garantir que le score
+            // affiché en recommandation est identique au score final de la
+            // candidature. Un CV spécifique à la candidature (uploadé dans le
+            // formulaire ci-dessus) invalide toujours ce raisonnement — dans
+            // ce cas précis on recalcule pour respecter RM-M04 (le score doit
+            // se baser sur le CV réellement joint à la candidature).
+            $preview = ($cvFile instanceof UploadedFile)
+                ? null
+                : $matchingPreviewService->findValidPreview($profil, $offre);
+
+            if ($preview !== null) {
+                $result = [
+                    'score' => $preview->getScore(),
+                    'competences_matchees' => $preview->getCompetencesMatcheesArray(),
+                    'competences_manquantes' => $preview->getCompetencesManquantesArray(),
+                ];
+            } else {
+                $result = $matchingService->computeScore($profil, $offre);
+            }
+
             $candidature->setScoreMatching($result['score'] !== null ? (float) $result['score'] : null);
             $candidature->setCompetencesMatcheesArray($result['competences_matchees']);
             $candidature->setCompetencesManquantesArray($result['competences_manquantes']);

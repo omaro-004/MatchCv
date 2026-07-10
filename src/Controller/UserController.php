@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Service\CandidatStatsService;
 use App\Service\EntrepriseStatsService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -50,12 +51,22 @@ class UserController extends AbstractController
 
     /**
      * Dashboard candidat — ROLE_CANDIDAT requis (règle RM-R01).
+     * Affiche des statistiques RÉELLES (complétude du profil, offres
+     * disponibles, candidatures, recommandations) calculées via
+     * CandidatStatsService — plus aucune donnée fictive.
      */
     #[Route('/candidat/dashboard', name: 'app_candidat_dashboard', methods: ['GET'])]
     #[IsGranted('ROLE_CANDIDAT')]
-    public function candidatDashboard(): Response
+    public function candidatDashboard(CandidatStatsService $statsService): Response
     {
-        return $this->render('candidat_dashboard.html.twig');
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $stats = $statsService->computeStats($user);
+
+        return $this->render('candidat_dashboard.html.twig', [
+            'stats' => $stats,
+        ]);
     }
 
     /**

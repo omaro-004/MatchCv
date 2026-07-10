@@ -3,7 +3,6 @@
 namespace App\Repository;
 
 use App\Entity\Candidature;
-use App\Entity\Offre;
 use App\Entity\ProfilCandidat;
 use App\Entity\ProfilEntreprise;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -83,58 +82,100 @@ class CandidatureRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    // ── NOUVEAU : logique du flux candidat ↔ offre ────────────────
+    // ================================================================
+    //  NOUVEAU — Statistiques côté CANDIDAT, utilisées par le dashboard
+    //  candidat (CandidatStatsService).
+    // ================================================================
 
-    public function findOneByOffreAndCandidat(Offre $offre, ProfilCandidat $candidat): ?Candidature
+    public function countByCandidat(ProfilCandidat $candidat): int
     {
-        return $this->findOneBy(['offre' => $offre, 'candidat' => $candidat]);
-    }
-
-    /**
-     * @return int[] IDs des offres auxquelles ce candidat a déjà postulé.
-     */
-    public function findOffreIdsCandidatees(ProfilCandidat $candidat): array
-    {
-        $rows = $this->createQueryBuilder('c')
-            ->select('IDENTITY(c.offre) AS offreId')
+        return (int) $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
             ->andWhere('c.candidat = :candidat')
             ->setParameter('candidat', $candidat)
             ->getQuery()
-            ->getScalarResult();
+            ->getSingleScalarResult();
+    }
 
-        return array_map(static fn ($row) => (int) $row['offreId'], $rows);
+    /**
+     * @return array<string, int> ex: ['en_attente' => 2, 'accepte' => 1, 'refuse' => 0]
+     */
+    public function countByStatutForCandidat(ProfilCandidat $candidat): array
+    {
+        $rows = $this->createQueryBuilder('c')
+            ->select('c.statut AS statut, COUNT(c.id) AS total')
+            ->andWhere('c.candidat = :candidat')
+            ->setParameter('candidat', $candidat)
+            ->groupBy('c.statut')
+            ->getQuery()
+            ->getResult();
+
+        $result = array_fill_keys(Candidature::STATUTS, 0);
+        foreach ($rows as $row) {
+            $result[$row['statut']] = (int) $row['total'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Score de matching moyen obtenu par CE candidat sur l'ensemble de
+     * ses candidatures déjà scorées par l'IA.
+     */
+    public function averageScoreForCandidat(ProfilCandidat $candidat): ?float
+    {
+        $avg = $this->createQueryBuilder('c')
+            ->select('AVG(c.scoreMatching) AS moyenne')
+            ->andWhere('c.candidat = :candidat')
+            ->andWhere('c.scoreMatching IS NOT NULL')
+            ->setParameter('candidat', $candidat)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $avg !== null ? round((float) $avg, 1) : null;
     }
 
     /**
      * @return Candidature[]
      */
-    public function findByCandidat(ProfilCandidat $candidat): array
+    public function findRecentByCandidat(ProfilCandidat $candidat, int $limit = 5): array
     {
         return $this->createQueryBuilder('c')
             ->andWhere('c.candidat = :candidat')
             ->setParameter('candidat', $candidat)
             ->orderBy('c.dateCandidature', 'DESC')
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
     }
 
     /**
-     * @return Candidature[]
+     * @return int[]
      */
-    public function findByEntreprise(ProfilEntreprise $entreprise, ?Offre $offre = null): array
+    public function findOffreIdsCandidatees(ProfilCandidat $candidat): array
     {
-        $qb = $this->createQueryBuilder('c')
-            ->join('c.offre', 'o')
-            ->addSelect('o')
-            ->andWhere('o.entreprise = :entreprise')
-            ->setParameter('entreprise', $entreprise)
-            ->orderBy('c.scoreMatching', 'DESC')
-            ->addOrderBy('c.dateCandidature', 'DESC');
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.offre) AS offre_id')
+            ->andWhere('c.candidat = :candidat')
+            ->setParameter('candidat', $candidat)
+            ->getQuery()
+            ->getScalarResult();
 
-        if ($offre !== null) {
-            $qb->andWhere('c.offre = :offre')->setParameter('offre', $offre);
-        }
+        return array_map(static fn(array $row): int => (int) $row['offre_id'], $rows);
+    }
 
-        return $qb->getQuery()->getResult();
+    public function findOneByOffreAndCandidat(
+        
+        \App\Entity\Offre $offre,
+        ProfilCandidat $candidat
+    ): ?Candidature {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.offre = :offre')
+            ->andWhere('c.candidat = :candidat')
+            ->setParameter('offre', $offre)
+            ->setParameter('candidat', $candidat)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

@@ -18,6 +18,54 @@ class OffreRepository extends ServiceEntityRepository
     }
 
     /**
+     * @param array{q?: string, typeContrat?: string, modeTravail?: string, localisation?: string} $filters
+     *
+     * @return Offre[]
+     */
+    public function findAllActive(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->leftJoin('o.entreprise', 'e')
+            ->addSelect('e')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->orderBy('o.datePublication', 'DESC');
+
+        $query = trim((string) ($filters['q'] ?? ''));
+        if ($query !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'LOWER(o.titre) LIKE :query',
+                    'LOWER(o.description) LIKE :query',
+                    'LOWER(o.localisation) LIKE :query',
+                    'LOWER(e.raisonSociale) LIKE :query',
+                    'LOWER(e.secteur) LIKE :query'
+                )
+            )->setParameter('query', '%' . mb_strtolower($query) . '%');
+        }
+
+        $typeContrat = trim((string) ($filters['typeContrat'] ?? ''));
+        if ($typeContrat !== '') {
+            $qb->andWhere('o.typeContrat = :typeContrat')
+                ->setParameter('typeContrat', $typeContrat);
+        }
+
+        $modeTravail = trim((string) ($filters['modeTravail'] ?? ''));
+        if ($modeTravail !== '') {
+            $qb->andWhere('o.modeTravail = :modeTravail')
+                ->setParameter('modeTravail', $modeTravail);
+        }
+
+        $localisation = trim((string) ($filters['localisation'] ?? ''));
+        if ($localisation !== '') {
+            $qb->andWhere('LOWER(o.localisation) LIKE :localisation')
+                ->setParameter('localisation', '%' . mb_strtolower($localisation) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
      * @return Offre[]
      */
     public function findActiveByEntreprise(ProfilEntreprise $entreprise): array
@@ -151,40 +199,126 @@ class OffreRepository extends ServiceEntityRepository
 
         return $result;
     }
+
+    // ================================================================
+    //  NOUVEAU — Statistiques GLOBALES (toutes entreprises confondues)
+    //  utilisées par le dashboard CANDIDAT.
+    // ================================================================
+
     /**
-     * Liste des offres actives, toutes entreprises confondues, pour la navigation candidat.
-     * Filtres optionnels : q (titre/description), typeContrat, modeTravail, localisation.
-     *
-     * @param array{q?: string, typeContrat?: string, modeTravail?: string, localisation?: string} $filters
-     * @return Offre[]
+     * Nombre total d'offres actives sur toute la plateforme.
      */
-    public function findAllActive(array $filters = []): array
+    public function countAllActive(): int
     {
-        $qb = $this->createQueryBuilder('o')
-            ->join('o.entreprise', 'e')
-            ->addSelect('e')
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
             ->andWhere('o.statut = :statut')
             ->setParameter('statut', Offre::STATUT_ACTIVE)
-            ->orderBy('o.datePublication', 'DESC');
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 
-        if (!empty($filters['q'])) {
-            $qb->andWhere('o.titre LIKE :q OR o.description LIKE :q OR e.raisonSociale LIKE :q')
-                ->setParameter('q', '%' . $filters['q'] . '%');
+    /**
+     * Nombre d'offres actives correspondant au type de contrat recherché
+     * par le candidat ('les_deux' = pas de filtre).
+     */
+    public function countActiveMatchingTypeContrat(string $typeContratCandidat): int
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE);
+
+        if ($typeContratCandidat !== 'les_deux') {
+            $qb->andWhere('o.typeContrat = :type')->setParameter('type', $typeContratCandidat);
         }
 
-        if (!empty($filters['typeContrat']) && in_array($filters['typeContrat'], Offre::TYPES_CONTRAT, true)) {
-            $qb->andWhere('o.typeContrat = :typeContrat')->setParameter('typeContrat', $filters['typeContrat']);
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
+     * Nombre d'offres actives publiées durant les N derniers jours
+     * (toutes entreprises confondues).
+     */
+    public function countRecentActive(int $days = 7): int
+    {
+        $since = (new \DateTimeImmutable())->modify(sprintf('-%d days', $days));
+
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.statut = :statut')
+            ->andWhere('o.datePublication >= :since')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Répartition GLOBALE des offres actives par type de contrat.
+     *
+     * @return array<string, int>
+     */
+    public function countActiveGroupByTypeContratGlobal(): array
+    {
+        $rows = $this->createQueryBuilder('o')
+            ->select('o.typeContrat AS type, COUNT(o.id) AS total')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->groupBy('o.typeContrat')
+            ->getQuery()
+            ->getResult();
+
+        $result = array_fill_keys(Offre::TYPES_CONTRAT, 0);
+        foreach ($rows as $row) {
+            $result[$row['type']] = (int) $row['total'];
         }
 
-        if (!empty($filters['modeTravail']) && in_array($filters['modeTravail'], Offre::MODES_TRAVAIL, true)) {
-            $qb->andWhere('o.modeTravail = :modeTravail')->setParameter('modeTravail', $filters['modeTravail']);
+        return $result;
+    }
+
+    /**
+     * Répartition GLOBALE des offres actives par mode de travail.
+     *
+     * @return array<string, int>
+     */
+    public function countActiveGroupByModeTravailGlobal(): array
+    {
+        $rows = $this->createQueryBuilder('o')
+            ->select('o.modeTravail AS mode, COUNT(o.id) AS total')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->groupBy('o.modeTravail')
+            ->getQuery()
+            ->getResult();
+
+        $result = array_fill_keys(Offre::MODES_TRAVAIL, 0);
+        foreach ($rows as $row) {
+            $result[$row['mode']] = (int) $row['total'];
         }
 
-        if (!empty($filters['localisation'])) {
-            $qb->andWhere('o.localisation LIKE :loc')->setParameter('loc', '%' . $filters['localisation'] . '%');
+        return $result;
+    }
+
+    /**
+     * Offres actives correspondant au type de contrat recherché par le
+     * candidat, les plus récentes en premier — base de la liste de
+     * recommandations du dashboard candidat.
+     *
+     * @return Offre[]
+     */
+    public function findActiveForCandidat(string $typeContratCandidat, int $limit = 20): array
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->orderBy('o.datePublication', 'DESC')
+            ->setMaxResults($limit);
+
+        if ($typeContratCandidat !== 'les_deux') {
+            $qb->andWhere('o.typeContrat = :type')->setParameter('type', $typeContratCandidat);
         }
 
         return $qb->getQuery()->getResult();
     }
-
 }

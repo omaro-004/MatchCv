@@ -110,6 +110,15 @@ class Offre
     private ?\DateTimeImmutable $dateArchivage = null;
 
     /**
+     * NOUVEAU — Horodatage de la dernière modification de l'offre. Utilisé
+     * par MatchingPreviewService pour invalider le cache de score IA d'une
+     * offre modifiée (titre, description, compétences requises...).
+     * Mis à jour automatiquement par Doctrine à chaque UPDATE.
+     */
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
+
+    /**
      * Candidatures reçues pour cette offre (nouveau — fondation du module stats).
      */
     #[ORM\OneToMany(mappedBy: 'offre', targetEntity: Candidature::class, cascade: ['remove'], orphanRemoval: true)]
@@ -126,6 +135,12 @@ class Offre
         if ($this->datePublication === null) {
             $this->datePublication = new \DateTimeImmutable();
         }
+    }
+
+    #[ORM\PreUpdate]
+    public function setUpdatedAtOnUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     // ---------------------------------------------------------------
@@ -332,6 +347,17 @@ class Offre
     public function getDateArchivage(): ?\DateTimeImmutable
     {
         return $this->dateArchivage;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+        return $this;
     }
 
     public function archiver(string $motif, ?string $details = null): static

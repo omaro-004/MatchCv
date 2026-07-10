@@ -35,7 +35,32 @@
                     <td style="color:var(--text-secondary);font-size:.85rem;">{{ c.offre.entreprise.raisonSociale }}</td>
                     <td>
                         {% if c.scoreMatching is not null %}
-                            <span class="match-score {{ c.scoreMatching >= 80 ? 'high' : (c.scoreMatching >= 60 ? 'mid' : 'low') }}">{{ c.scoreMatching|round }}%</span>
+                            <span class="score-tooltip-wrapper" tabindex="0">
+                                <span class="match-score {{ c.scoreMatching >= 80 ? 'high' : (c.scoreMatching >= 60 ? 'mid' : 'low') }}">{{ c.scoreMatching|round }}%</span>
+                                <div class="score-tooltip-content">
+                                    <div class="score-tooltip-title">Score IA : {{ c.scoreMatching|round }}% de compatibilité</div>
+                                    <div class="score-tooltip-section">
+                                        <div class="score-tooltip-label matched">✓ Compétences correspondantes</div>
+                                        {% if c.competencesMatcheesArray|length > 0 %}
+                                            <div class="score-tooltip-chips">
+                                                {% for skill in c.competencesMatcheesArray %}<span class="score-tooltip-chip matched">{{ skill }}</span>{% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="score-tooltip-empty">Aucune compétence commune identifiée.</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="score-tooltip-section">
+                                        <div class="score-tooltip-label missing">✗ Compétences manquantes</div>
+                                        {% if c.competencesManquantesArray|length > 0 %}
+                                            <div class="score-tooltip-chips">
+                                                {% for skill in c.competencesManquantesArray %}<span class="score-tooltip-chip missing">{{ skill }}</span>{% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <div class="score-tooltip-empty">Aucune compétence manquante détectée.</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </span>
                         {% else %}
                             <span style="color:var(--text-muted);font-size:.8rem;">En cours d'analyse</span>
                         {% endif %}

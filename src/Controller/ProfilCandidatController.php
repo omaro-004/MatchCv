@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ProfilCandidat;
 use App\Entity\User;
 use App\Form\ProfilCandidatEditType;
+use App\Repository\MatchingPreviewRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -23,12 +24,14 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  * années d'expérience, langues parlées, compétences techniques, formations,
  * expériences professionnelles, résumé IA.
  *
- * NOUVEAU : une page d'édition (app_profil_candidat_edit) permet au
- * candidat de corriger manuellement TOUS ces champs après leur
- * remplissage automatique par l'IA. Cela ne modifie EN RIEN la logique
- * d'analyse IA elle-même (CvAiProfileAnalyzer) : l'IA continue de
- * pré-remplir les champs à l'inscription / complétion de profil, et le
- * candidat peut ensuite les ajuster librement depuis cette page.
+ * Une page d'édition (app_profil_candidat_edit) permet au candidat de
+ * corriger manuellement TOUS ces champs après leur remplissage automatique
+ * par l'IA.
+ *
+ * NOUVEAU : toute modification manuelle du profil invalide le cache des
+ * scores IA "recommandés" (MatchingPreview) déjà calculés pour ce candidat,
+ * afin que le dashboard recalcule des scores à jour reflétant les
+ * changements — jamais un score basé sur d'anciennes compétences.
  *
  * Routes déjà couvertes par security.yaml (préfixe ^/candidat → ROLE_CANDIDAT),
  * aucune modification de security.yaml n'est nécessaire.
@@ -51,7 +54,8 @@ class ProfilCandidatController extends AbstractController
     public function edit(
         Request $request,
         EntityManagerInterface $entityManager,
-        SluggerInterface $slugger
+        SluggerInterface $slugger,
+        MatchingPreviewRepository $matchingPreviewRepository
     ): Response {
         $profil = $this->getOrCreateProfil($entityManager);
 
@@ -89,6 +93,11 @@ class ProfilCandidatController extends AbstractController
             $profil->setSoftSkillsArray($this->splitLines($form->get('softSkillsText')->getData()));
 
             $entityManager->flush();
+
+            // NOUVEAU : invalide le cache de scores IA "recommandés" — le
+            // profil ayant changé manuellement, les anciens scores ne sont
+            // plus fiables. Le prochain chargement du dashboard recalculera.
+            $matchingPreviewRepository->deleteAllForCandidat($profil);
 
             $this->addFlash('success', 'Votre profil a été mis à jour avec succès.');
 
