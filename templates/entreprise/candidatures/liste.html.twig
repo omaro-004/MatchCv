@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Candidatures{% endblock %}
+{% block page_title %}Candidatures reçues{% endblock %}
+{% block page_subtitle %}{{ candidatures|length }} candidature{{ candidatures|length > 1 ? 's' : '' }}{% if offre_filtre %} pour « {{ offre_filtre.titre }} »{% endif %}{% endblock %}
+
+{% block body %}
+
+<div style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <select class="filter-select" onchange="window.location.href = this.value ? '{{ path('app_entreprise_candidatures_liste') }}?offre=' + this.value : '{{ path('app_entreprise_candidatures_liste') }}'">
+        <option value="">Toutes les offres</option>
+        {% for o in offres %}
+            <option value="{{ o.id }}" {{ offre_filtre and offre_filtre.id == o.id ? 'selected' : '' }}>{{ o.titre }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+{% if candidatures|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">📭</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">Aucune candidature reçue pour le moment</div>
+        <div style="color:var(--text-secondary);font-size:.85rem;">Les candidatures apparaîtront ici dès qu'un candidat postulera à l'une de vos offres.</div>
+    </div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Candidat</th>
+                    <th>Offre</th>
+                    <th>Score IA</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in candidatures %}
+                {% set candidat = c.candidat %}
+                <tr data-candidature-id="{{ c.id }}">
+                    <td>
+                        <strong>{{ candidat.nomComplet }}</strong>
+                        <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">
+                            {% if c.cv %}<a href="{{ asset(c.cv) }}" target="_blank" style="color:var(--accent);">📄 Voir le CV</a>{% endif %}
+                        </div>
+                    </td>
+                    <td style="font-size:.85rem;color:var(--text-secondary);">{{ c.offre.titre }}</td>
+                    <td>
+                        {% if c.scoreMatching is not null %}
+                            <span class="match-score {{ c.scoreMatching >= 80 ? 'high' : (c.scoreMatching >= 60 ? 'mid' : 'low') }}">{{ c.scoreMatching|round }}%</span>
+                            {% if c.competencesManquantesArray|length > 0 %}
+                                <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;max-width:200px;">Manque : {{ c.competencesManquantesArray|join(', ') }}</div>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--text-muted);font-size:.8rem;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge statut-badge {{ c.statut == 'accepte' ? 'badge-success' : (c.statut == 'refuse' ? 'badge-danger' : 'badge-warning') }}">{{ c.statutLabel }}</span>
+                    </td>
+                    <td style="font-size:.82rem;color:var(--text-secondary);">{{ c.dateCandidature|date('d/m/Y') }}</td>
+                    <td>
+                        {% if c.statut == 'en_attente' %}
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-sm btn-statut" style="background:rgba(34,197,94,.12);color:#16a34a;" data-id="{{ c.id }}" data-statut="accepte">Accepter</button>
+                            <button class="btn btn-sm btn-statut" style="background:rgba(239,68,68,.12);color:#dc2626;" data-id="{{ c.id }}" data-statut="refuse">Refuser</button>
+                        </div>
+                        {% else %}
+                            <span style="font-size:.78rem;color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<script>
+(function () {
+    const CSRF_TOKEN = '{{ csrf_token("candidature_statut") }}';
+
+    document.querySelectorAll('.btn-statut').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+            const id = btn.dataset.id;
+            const statut = btn.dataset.statut;
+
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/entreprise/candidatures/' + id + '/statut', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN,
+                    },
+                    body: JSON.stringify({ statut: statut }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Une erreur est survenue.');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert('Erreur réseau. Réessayez.');
+                btn.disabled = false;
+            }
+        });
+    });
+})();
+</script>
+
+{% endblock %}

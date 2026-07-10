@@ -151,4 +151,40 @@ class OffreRepository extends ServiceEntityRepository
 
         return $result;
     }
+    /**
+     * Liste des offres actives, toutes entreprises confondues, pour la navigation candidat.
+     * Filtres optionnels : q (titre/description), typeContrat, modeTravail, localisation.
+     *
+     * @param array{q?: string, typeContrat?: string, modeTravail?: string, localisation?: string} $filters
+     * @return Offre[]
+     */
+    public function findAllActive(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->join('o.entreprise', 'e')
+            ->addSelect('e')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->orderBy('o.datePublication', 'DESC');
+
+        if (!empty($filters['q'])) {
+            $qb->andWhere('o.titre LIKE :q OR o.description LIKE :q OR e.raisonSociale LIKE :q')
+                ->setParameter('q', '%' . $filters['q'] . '%');
+        }
+
+        if (!empty($filters['typeContrat']) && in_array($filters['typeContrat'], Offre::TYPES_CONTRAT, true)) {
+            $qb->andWhere('o.typeContrat = :typeContrat')->setParameter('typeContrat', $filters['typeContrat']);
+        }
+
+        if (!empty($filters['modeTravail']) && in_array($filters['modeTravail'], Offre::MODES_TRAVAIL, true)) {
+            $qb->andWhere('o.modeTravail = :modeTravail')->setParameter('modeTravail', $filters['modeTravail']);
+        }
+
+        if (!empty($filters['localisation'])) {
+            $qb->andWhere('o.localisation LIKE :loc')->setParameter('loc', '%' . $filters['localisation'] . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
 }

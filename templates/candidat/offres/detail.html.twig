@@ -1,0 +1,151 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ offre.titre }}{% endblock %}
+{% block page_title %}{{ offre.titre }}{% endblock %}
+{% block page_subtitle %}{{ entreprise.raisonSociale }} · {{ offre.localisation }}{% endblock %}
+
+{% block body %}
+
+<div style="margin-bottom:16px;">
+    <a href="{{ path('app_candidat_offres_liste') }}" style="color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;font-size:.82rem;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
+        Retour aux offres
+    </a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+
+    {# ── COLONNE PRINCIPALE ── #}
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+        {# En-tête offre #}
+        <div class="card" style="padding:24px;">
+            <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+                <div class="offer-logo" style="width:60px;height:60px;font-size:1.3rem;background:linear-gradient(135deg,#6366f1,#a855f7);overflow:hidden;">
+                    {% if entreprise.logo %}
+                        <img src="{{ asset(entreprise.logo) }}" alt="{{ entreprise.raisonSociale }}" style="width:100%;height:100%;object-fit:cover;">
+                    {% else %}
+                        {{ entreprise.raisonSociale|first|upper }}
+                    {% endif %}
+                </div>
+                <div style="flex:1;min-width:200px;">
+                    <div style="font-size:1.3rem;font-weight:800;color:var(--text-primary);">{{ offre.titre }}</div>
+                    <div style="color:var(--text-secondary);font-size:.9rem;margin-top:2px;">{{ entreprise.raisonSociale }}</div>
+                    <div class="offer-meta" style="margin-top:10px;">
+                        <span class="offer-meta-item">📍 {{ offre.localisation }}</span>
+                        <span class="offer-meta-item">💼 {{ offre.typeContratLabel }}{% if offre.dureeContrat %} · {{ offre.dureeContrat }}{% endif %}</span>
+                        <span class="offer-meta-item">🏠 {{ offre.modeTravailLabel }}</span>
+                        {% if offre.dateDebut %}<span class="offer-meta-item">📅 Début : {{ offre.dateDebut|date('d/m/Y') }}</span>{% endif %}
+                        {% if offre.salaire %}<span class="offer-salary">{{ offre.salaire|number_format(0, ',', ' ') }} €</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Description #}
+        <div class="card" style="padding:24px;">
+            <div class="card-title" style="margin-bottom:10px;">Description du poste</div>
+            <p style="font-size:.9rem;color:var(--text-secondary);line-height:1.7;white-space:pre-line;">{{ offre.description }}</p>
+        </div>
+
+        {# Compétences requises #}
+        {% if offre.competencesRequisesArray|length > 0 %}
+        <div class="card" style="padding:24px;">
+            <div class="card-title" style="margin-bottom:10px;">Compétences recherchées</div>
+            <div class="offer-tags">
+                {% for c in offre.competencesRequisesArray %}
+                    <span class="tag">{{ c }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# À propos de l'entreprise + localisation carte #}
+        <div class="card" style="padding:24px;">
+            <div class="card-title" style="margin-bottom:12px;">À propos de {{ entreprise.raisonSociale }}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:.85rem;color:var(--text-secondary);margin-bottom:16px;">
+                {% if entreprise.secteur %}<div>🏭 {{ entreprise.secteur }}</div>{% endif %}
+                {% if entreprise.type %}<div>🏢 {{ entreprise.type }}</div>{% endif %}
+                {% if entreprise.lienSite %}<div>🌐 <a href="{{ entreprise.lienSite }}" target="_blank" style="color:var(--accent);">{{ entreprise.lienSite }}</a></div>{% endif %}
+            </div>
+            {% if entreprise.localisation %}
+            <div style="border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border);">
+                <iframe
+                    src="https://www.google.com/maps?q={{ entreprise.localisation|url_encode }}&output=embed"
+                    width="100%" height="260" style="border:0;display:block;" loading="lazy">
+                </iframe>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Avis candidats #}
+        <div class="card" style="padding:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                <div class="card-title">Avis des candidats</div>
+                {% if note_moyenne is not null %}
+                    <div style="font-weight:700;color:var(--warning);">★ {{ note_moyenne }}/5 <span style="color:var(--text-muted);font-weight:400;font-size:.8rem;">({{ nombre_avis }} avis)</span></div>
+                {% else %}
+                    <div style="color:var(--text-muted);font-size:.82rem;">Aucun avis pour le moment</div>
+                {% endif %}
+            </div>
+
+            {% for a in avis %}
+                <div style="padding:12px 0;border-bottom:1px solid var(--border);">
+                    <div style="display:flex;justify-content:space-between;">
+                        <strong style="font-size:.85rem;">{{ a.candidat.nomComplet|split(' ')|first }}</strong>
+                        <span style="color:var(--warning);font-size:.82rem;">
+                            {% for i in 1..5 %}{{ i <= a.note ? '★' : '☆' }}{% endfor %}
+                        </span>
+                    </div>
+                    {% if a.commentaire %}<p style="font-size:.83rem;color:var(--text-secondary);margin-top:4px;">{{ a.commentaire }}</p>{% endif %}
+                    <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">{{ a.dateAvis|date('d/m/Y') }}</div>
+                </div>
+            {% else %}
+                <p style="font-size:.83rem;color:var(--text-muted);">Soyez le premier à partager votre expérience avec cette entreprise.</p>
+            {% endfor %}
+
+            <form method="post" action="{{ path('app_candidat_entreprise_avis', {id: entreprise.id}) }}" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('laisser_avis') }}">
+                <div class="form-group">
+                    <label>{{ mon_avis ? 'Modifier mon avis' : 'Laisser un avis' }}</label>
+                    <select name="note" class="form-control filter-select" style="width:auto;">
+                        {% for n in [5,4,3,2,1] %}
+                            <option value="{{ n }}" {{ mon_avis and mon_avis.note == n ? 'selected' : (not mon_avis and n == 5 ? 'selected' : '') }}>{{ n }} ★</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <textarea name="commentaire" class="form-control" rows="2" placeholder="Votre expérience avec cette entreprise (optionnel)">{{ mon_avis ? mon_avis.commentaire : '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">{{ mon_avis ? 'Mettre à jour mon avis' : 'Publier mon avis' }}</button>
+            </form>
+        </div>
+
+    </div>
+
+    {# ── COLONNE LATÉRALE : CTA postuler ── #}
+    <div style="position:sticky;top:80px;">
+        <div class="card" style="padding:22px;text-align:center;">
+            {% if deja_candidate %}
+                <div class="badge badge-success" style="margin-bottom:12px;">✓ Candidature envoyée</div>
+                <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:14px;">Vous avez déjà postulé à cette offre.</p>
+                <a href="{{ path('app_candidat_candidatures_liste') }}" class="btn btn-secondary btn-full">Voir mes candidatures</a>
+            {% else %}
+                <p style="font-size:.85rem;color:var(--text-secondary);margin-bottom:14px;">Ce poste vous intéresse ? Postulez en quelques secondes grâce à votre profil déjà rempli.</p>
+                <a href="{{ path('app_candidat_offre_postuler', {id: offre.id}) }}" class="btn btn-primary btn-full btn-lg" id="btn-postuler" style="animation:pulse-cta 1.8s infinite;">
+                    🚀 Postuler à cette offre
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<style>
+@keyframes pulse-cta {
+    0%, 100% { box-shadow: 0 4px 14px rgba(99,102,241,.35); }
+    50% { box-shadow: 0 4px 22px rgba(99,102,241,.65); }
+}
+</style>
+
+{% endblock %}

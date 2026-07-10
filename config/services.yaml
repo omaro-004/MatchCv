@@ -41,3 +41,8 @@ services:
     App\Service\CvAiProfileAnalyzer:
         arguments:
             $groqApiKey: '%env(GROQ_API_KEY)%'
+
+    # ── NOUVEAU : MatchingService (score IA candidat ↔ offre) ──────
+    App\Service\MatchingService:
+        arguments:
+            $groqApiKey: '%env(GROQ_API_KEY)%'

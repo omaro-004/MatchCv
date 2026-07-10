@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Postuler{% endblock %}
+{% block page_title %}Postuler à : {{ offre.titre }}{% endblock %}
+{% block page_subtitle %}{{ offre.entreprise.raisonSociale }} · {{ offre.localisation }}{% endblock %}
+
+{% block body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">{{ form_errors(field) }}</div>
+    {% endif %}
+{% endmacro %}
+
+<div style="margin-bottom:16px;">
+    <a href="{{ path('app_candidat_offre_detail', {id: offre.id}) }}" style="color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;font-size:.82rem;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
+        Retour à l'offre
+    </a>
+</div>
+
+<div class="card" style="max-width:640px;padding:28px;">
+
+    <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:20px;font-size:.83rem;color:var(--text-secondary);">
+        Votre CV et vos informations de profil seront automatiquement joints à cette candidature.
+        Vous pouvez, si vous le souhaitez, ajouter un message ou un CV spécifique ci-dessous.
+    </div>
+
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+        <div class="form-group">
+            <label>{{ form_label(form.lettreMotivation) }}</label>
+            {{ form_widget(form.lettreMotivation, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.lettreMotivation) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.cv) }}</label>
+            {{ form_widget(form.cv, {'attr': {'class': 'form-control', 'accept': 'application/pdf'}}) }}
+            <div class="form-hint">Laissez ce champ vide pour utiliser le CV déjà présent dans votre profil.</div>
+            {{ _self.field_error(form.cv) }}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:8px;">
+            🚀 Envoyer ma candidature
+        </button>
+
+    {{ form_end(form) }}
+
+</div>
+{% endblock %}

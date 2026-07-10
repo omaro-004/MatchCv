@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes candidatures{% endblock %}
+{% block page_title %}Mes candidatures{% endblock %}
+{% block page_subtitle %}{{ candidatures|length }} candidature{{ candidatures|length > 1 ? 's' : '' }} envoyée{{ candidatures|length > 1 ? 's' : '' }}{% endblock %}
+
+{% block body %}
+
+{% if candidatures|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">📭</div>
+        <div style="font-weight:700;font-size:1rem;margin-bottom:6px;">Aucune candidature pour le moment</div>
+        <div style="color:var(--text-secondary);font-size:.85rem;margin-bottom:20px;">Parcourez les offres disponibles et postulez en un clic.</div>
+        <a href="{{ path('app_candidat_offres_liste') }}" class="btn btn-primary btn-sm" style="display:inline-flex;">Voir les offres</a>
+    </div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Offre</th>
+                    <th>Entreprise</th>
+                    <th>Score IA</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in candidatures %}
+                <tr>
+                    <td>
+                        <a href="{{ path('app_candidat_offre_detail', {id: c.offre.id}) }}" style="font-weight:600;color:var(--text-primary);">{{ c.offre.titre }}</a>
+                        <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">{{ c.offre.localisation }} · {{ c.offre.typeContratLabel }}</div>
+                    </td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ c.offre.entreprise.raisonSociale }}</td>
+                    <td>
+                        {% if c.scoreMatching is not null %}
+                            <span class="match-score {{ c.scoreMatching >= 80 ? 'high' : (c.scoreMatching >= 60 ? 'mid' : 'low') }}">{{ c.scoreMatching|round }}%</span>
+                        {% else %}
+                            <span style="color:var(--text-muted);font-size:.8rem;">En cours d'analyse</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {{ c.statut == 'accepte' ? 'badge-success' : (c.statut == 'refuse' ? 'badge-danger' : 'badge-warning') }}">{{ c.statutLabel }}</span>
+                    </td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ c.dateCandidature|date('d/m/Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+{% endblock %}

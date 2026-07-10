@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Candidature;
+use App\Entity\Offre;
+use App\Entity\ProfilCandidat;
 use App\Entity\ProfilEntreprise;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -79,5 +81,60 @@ class CandidatureRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    // ── NOUVEAU : logique du flux candidat ↔ offre ────────────────
+
+    public function findOneByOffreAndCandidat(Offre $offre, ProfilCandidat $candidat): ?Candidature
+    {
+        return $this->findOneBy(['offre' => $offre, 'candidat' => $candidat]);
+    }
+
+    /**
+     * @return int[] IDs des offres auxquelles ce candidat a déjà postulé.
+     */
+    public function findOffreIdsCandidatees(ProfilCandidat $candidat): array
+    {
+        $rows = $this->createQueryBuilder('c')
+            ->select('IDENTITY(c.offre) AS offreId')
+            ->andWhere('c.candidat = :candidat')
+            ->setParameter('candidat', $candidat)
+            ->getQuery()
+            ->getScalarResult();
+
+        return array_map(static fn ($row) => (int) $row['offreId'], $rows);
+    }
+
+    /**
+     * @return Candidature[]
+     */
+    public function findByCandidat(ProfilCandidat $candidat): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.candidat = :candidat')
+            ->setParameter('candidat', $candidat)
+            ->orderBy('c.dateCandidature', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Candidature[]
+     */
+    public function findByEntreprise(ProfilEntreprise $entreprise, ?Offre $offre = null): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->join('c.offre', 'o')
+            ->addSelect('o')
+            ->andWhere('o.entreprise = :entreprise')
+            ->setParameter('entreprise', $entreprise)
+            ->orderBy('c.scoreMatching', 'DESC')
+            ->addOrderBy('c.dateCandidature', 'DESC');
+
+        if ($offre !== null) {
+            $qb->andWhere('c.offre = :offre')->setParameter('offre', $offre);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }

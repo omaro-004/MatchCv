@@ -5,16 +5,6 @@ namespace App\Entity;
 use App\Repository\CandidatureRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * Candidature
- *
- * Entité minimale posée en FONDATION pour le futur module "Candidat postule
- * à une offre". Utilisée ici uniquement pour calculer des statistiques
- * RÉELLES sur le dashboard entreprise : tant qu'aucune candidature n'existe,
- * les stats associées affichent honnêtement 0 / N/A plutôt que des chiffres
- * inventés. Le flux complet de candidature (formulaire côté candidat,
- * calcul du score IA, etc.) sera implémenté dans une phase dédiée.
- */
 #[ORM\Entity(repositoryClass: CandidatureRepository::class)]
 #[ORM\Table(name: 'candidature')]
 #[ORM\UniqueConstraint(name: 'uniq_offre_candidat', columns: ['id_offre', 'id_candidat'])]
@@ -43,6 +33,12 @@ class Candidature
     #[ORM\Column(name: 'cv', type: 'string', length: 500, nullable: true)]
     private ?string $cv = null;
 
+    /**
+     * Message de motivation optionnel saisi par le candidat au moment de postuler.
+     */
+    #[ORM\Column(name: 'lettre_motivation', type: 'text', nullable: true)]
+    private ?string $lettreMotivation = null;
+
     #[ORM\Column(
         name: 'statut',
         type: 'string',
@@ -53,6 +49,14 @@ class Candidature
 
     #[ORM\Column(name: 'score_matching', type: 'float', nullable: true)]
     private ?float $scoreMatching = null;
+
+    /** Stocké en JSON — compétences requises par l'offre que le candidat possède. */
+    #[ORM\Column(name: 'competences_matchees', type: 'text', nullable: true)]
+    private ?string $competencesMatchees = null;
+
+    /** Stocké en JSON — compétences requises par l'offre que le candidat ne possède pas. */
+    #[ORM\Column(name: 'competences_manquantes', type: 'text', nullable: true)]
+    private ?string $competencesManquantes = null;
 
     #[ORM\Column(name: 'date_candidature', type: 'datetime_immutable')]
     private ?\DateTimeImmutable $dateCandidature = null;
@@ -103,6 +107,17 @@ class Candidature
         return $this;
     }
 
+    public function getLettreMotivation(): ?string
+    {
+        return $this->lettreMotivation;
+    }
+
+    public function setLettreMotivation(?string $lettreMotivation): static
+    {
+        $this->lettreMotivation = $lettreMotivation;
+        return $this;
+    }
+
     public function getStatut(): string
     {
         return $this->statut;
@@ -138,6 +153,54 @@ class Candidature
         return $this;
     }
 
+    public function getCompetencesMatchees(): ?string
+    {
+        return $this->competencesMatchees;
+    }
+
+    public function setCompetencesMatchees(?string $competencesMatchees): static
+    {
+        $this->competencesMatchees = $competencesMatchees;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getCompetencesMatcheesArray(): array
+    {
+        return $this->decodeJsonArray($this->competencesMatchees);
+    }
+
+    /** @param string[] $values */
+    public function setCompetencesMatcheesArray(array $values): static
+    {
+        $this->competencesMatchees = $this->encodeJsonArray($values);
+        return $this;
+    }
+
+    public function getCompetencesManquantes(): ?string
+    {
+        return $this->competencesManquantes;
+    }
+
+    public function setCompetencesManquantes(?string $competencesManquantes): static
+    {
+        $this->competencesManquantes = $competencesManquantes;
+        return $this;
+    }
+
+    /** @return string[] */
+    public function getCompetencesManquantesArray(): array
+    {
+        return $this->decodeJsonArray($this->competencesManquantes);
+    }
+
+    /** @param string[] $values */
+    public function setCompetencesManquantesArray(array $values): static
+    {
+        $this->competencesManquantes = $this->encodeJsonArray($values);
+        return $this;
+    }
+
     public function getDateCandidature(): ?\DateTimeImmutable
     {
         return $this->dateCandidature;
@@ -147,5 +210,25 @@ class Candidature
     {
         $this->dateCandidature = $dateCandidature;
         return $this;
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers privés JSON (même pattern que ProfilCandidat)
+    // ---------------------------------------------------------------
+
+    /** @return string[] */
+    private function decodeJsonArray(?string $json): array
+    {
+        if ($json === null || $json === '') {
+            return [];
+        }
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    /** @param string[] $values */
+    private function encodeJsonArray(array $values): string
+    {
+        return json_encode(array_values(array_filter($values, static fn ($v) => is_string($v) && trim($v) !== '')), JSON_UNESCAPED_UNICODE);
     }
 }
