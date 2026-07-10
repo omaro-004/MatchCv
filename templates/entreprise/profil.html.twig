@@ -1,0 +1,215 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil entreprise{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+{% block page_subtitle %}Votre vitrine publique sur MatchCV{% endblock %}
+
+{% block body %}
+
+<style>
+    .cover-banner {
+        position: relative;
+        height: 220px;
+        border-radius: var(--radius-lg);
+        overflow: visible;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #a855f7 100%);
+        margin-bottom: 88px;
+    }
+    .cover-media {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        overflow: hidden;
+    }
+    .cover-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .cover-edit-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(15,23,42,.55);
+        backdrop-filter: blur(4px);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,.25);
+    }
+    .cover-edit-btn:hover { background: rgba(15,23,42,.75); }
+    .profile-logo-wrap {
+        position: absolute;
+        left: 32px;
+        bottom: -48px;
+        width: 128px;
+        height: 128px;
+        border-radius: 22px;
+        background: #fff;
+        border: 4px solid #fff;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .profile-logo-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .profile-logo-wrap .fallback {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg,#6366f1,#4f46e5);
+        width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .profile-heading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
+    .profile-heading-left { padding-left: 8px; }
+    .profile-heading h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.4px; margin-bottom: 4px; }
+    .profile-heading .subtitle { font-size: .9rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .profile-heading .subtitle svg { width: 15px; height: 15px; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 24px; }
+    .info-tile {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+    .info-tile-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: rgba(99,102,241,.1); color: var(--accent);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .info-tile-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); font-weight: 700; margin-bottom: 3px; }
+    .info-tile-value { font-size: .92rem; font-weight: 600; color: var(--text-primary); word-break: break-word; }
+    .info-tile-value a { color: var(--accent); }
+    .stat-pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(34,197,94,.1); color: #15803d;
+        padding: 6px 14px; border-radius: 999px; font-size: .82rem; font-weight: 700;
+    }
+</style>
+
+{# ── BANNIÈRE DE COUVERTURE + LOGO ── #}
+<div class="cover-banner">
+    {% if profil.photoCouverture %}
+        <div class="cover-media">
+            <img src="{{ asset(profil.photoCouverture) }}" alt="Photo de couverture">
+        </div>
+    {% endif %}
+    <a href="{{ path('app_profil_entreprise_edit') }}" class="btn btn-secondary btn-sm cover-edit-btn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Modifier la couverture
+    </a>
+    <div class="profile-logo-wrap">
+        {% if profil.logo %}
+            <img src="{{ asset(profil.logo) }}" alt="Logo {{ profil.raisonSociale }}">
+        {% else %}
+            <div class="fallback">{{ profil.raisonSociale|first|upper }}</div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── EN-TÊTE : NOM + INFOS RAPIDES ── #}
+<div class="profile-heading">
+    <div class="profile-heading-left">
+        <h1>{{ profil.raisonSociale }}</h1>
+        <div class="subtitle">
+            {% if profil.type %}<span>{{ profil.type }}</span>{% endif %}
+            {% if profil.type and profil.secteur %}<span>·</span>{% endif %}
+            {% if profil.secteur %}<span>{{ profil.secteur }}</span>{% endif %}
+            {% if profil.localisation %}
+                <span>·</span>
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                <span>{{ profil.localisation }}</span>
+            {% endif %}
+        </div>
+        <div style="margin-top:10px;">
+            <span class="stat-pill">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0 1 12 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/></svg>
+                {{ offresActives }} offre{{ offresActives > 1 ? 's' : '' }} active{{ offresActives > 1 ? 's' : '' }}
+            </span>
+        </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+        <a href="{{ path('app_entreprise_offres_liste') }}" class="btn btn-secondary">Voir mes offres</a>
+        <a href="{{ path('app_profil_entreprise_edit') }}" class="btn btn-primary">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier le profil
+        </a>
+    </div>
+</div>
+
+{# ── GRILLE D'INFORMATIONS ── #}
+<div class="info-grid">
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Téléphone</div>
+            <div class="info-tile-value">{{ profil.numTel ?: 'Non renseigné' }}</div>
+        </div>
+    </div>
+
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Email</div>
+            <div class="info-tile-value">{{ user.email }}</div>
+        </div>
+    </div>
+
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Site web</div>
+            <div class="info-tile-value">
+                {% if profil.lienSite %}
+                    <a href="{{ profil.lienSite }}" target="_blank" rel="noopener">{{ profil.lienSite }}</a>
+                {% else %}
+                    Non renseigné
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Numéro RNE</div>
+            <div class="info-tile-value">{{ profil.rne ?: 'Non renseigné' }}</div>
+        </div>
+    </div>
+
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Membre depuis</div>
+            <div class="info-tile-value">{{ user.dateInscri ? user.dateInscri|date('F Y') : '—' }}</div>
+        </div>
+    </div>
+
+    <div class="info-tile">
+        <div class="info-tile-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8M10 12h4"/></svg>
+        </div>
+        <div>
+            <div class="info-tile-label">Offres archivées</div>
+            <div class="info-tile-value">{{ offresArchivees }}</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

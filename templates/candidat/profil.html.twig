@@ -29,8 +29,13 @@
             {% endif %}
         </div>
 
+        <a href="{{ path('app_profil_candidat_edit') }}" class="btn btn-primary btn-full" style="margin-top:18px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Modifier mon profil
+        </a>
+
         {% if profil.hasCv %}
-            <a href="{{ asset(profil.cv) }}" target="_blank" class="btn btn-secondary btn-full" style="margin-top:18px;">
+            <a href="{{ asset(profil.cv) }}" target="_blank" class="btn btn-secondary btn-full" style="margin-top:10px;">
                 📄 Voir mon CV
             </a>
         {% endif %}

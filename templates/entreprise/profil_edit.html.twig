@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier mon profil{% endblock %}
+{% block page_title %}Modifier mon profil{% endblock %}
+{% block page_subtitle %}Mettez à jour les informations de votre entreprise{% endblock %}
+
+{% block body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">{{ form_errors(field) }}</div>
+    {% endif %}
+{% endmacro %}
+
+<div class="card" style="max-width:720px;padding:28px;">
+
+    <div style="display:flex;gap:20px;align-items:center;margin-bottom:24px;">
+        <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            {% if profil.logo %}
+                <img src="{{ asset(profil.logo) }}" style="width:100%;height:100%;object-fit:cover;" alt="Logo actuel">
+            {% else %}
+                <span style="color:#fff;font-weight:800;font-size:1.6rem;">{{ profil.raisonSociale|first|upper }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <div style="font-weight:700;font-size:1rem;">{{ profil.raisonSociale }}</div>
+            <a href="{{ path('app_profil_entreprise') }}" style="font-size:.82rem;color:var(--text-muted);">← Retour au profil</a>
+        </div>
+    </div>
+
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.raisonSociale) }}</label>
+                {{ form_widget(form.raisonSociale, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.raisonSociale) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.numTel) }}</label>
+                {{ form_widget(form.numTel, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.numTel) }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.type) }}</label>
+                {{ form_widget(form.type, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.type) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.secteur) }}</label>
+                {{ form_widget(form.secteur, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.secteur) }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.localisation) }}</label>
+                {{ form_widget(form.localisation, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.localisation) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.rne) }}</label>
+                {{ form_widget(form.rne, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.rne) }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.lienSite) }}</label>
+            {{ form_widget(form.lienSite, {'attr': {'class': 'form-control', 'placeholder': 'https://www.entreprise.com'}}) }}
+            {{ _self.field_error(form.lienSite) }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.logo) }}</label>
+                {{ form_widget(form.logo, {'attr': {'class': 'form-control'}}) }}
+                <div class="form-hint">Laissez vide pour conserver le logo actuel.</div>
+                {{ _self.field_error(form.logo) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.photoCouverture) }}</label>
+                {{ form_widget(form.photoCouverture, {'attr': {'class': 'form-control'}}) }}
+                <div class="form-hint">Laissez vide pour conserver la couverture actuelle.</div>
+                {{ _self.field_error(form.photoCouverture) }}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <a href="{{ path('app_profil_entreprise') }}" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</a>
+            <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center;">Enregistrer les modifications</button>
+        </div>
+
+    {{ form_end(form) }}
+
+</div>
+{% endblock %}

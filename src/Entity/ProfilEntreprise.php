@@ -45,6 +45,13 @@ class ProfilEntreprise
     #[ORM\Column(name: 'logo', type: 'string', length: 500, nullable: true)]
     private ?string $logo = null;
 
+    /**
+     * NOUVEAU — Photo de couverture affichée en bannière sur la page
+     * de profil entreprise (style "LinkedIn/Facebook").
+     */
+    #[ORM\Column(name: 'photo_couverture', type: 'string', length: 500, nullable: true)]
+    private ?string $photoCouverture = null;
+
     #[ORM\Column(name: 'rne', type: 'string', length: 50, nullable: true)]
     #[Assert\Length(max: 50, maxMessage: 'Le RNE ne peut pas dépasser {{ limit }} caractères.')]
     private ?string $rne = null;
@@ -124,6 +131,17 @@ class ProfilEntreprise
     public function setLogo(?string $logo): static
     {
         $this->logo = $logo;
+        return $this;
+    }
+
+    public function getPhotoCouverture(): ?string
+    {
+        return $this->photoCouverture;
+    }
+
+    public function setPhotoCouverture(?string $photoCouverture): static
+    {
+        $this->photoCouverture = $photoCouverture;
         return $this;
     }
 

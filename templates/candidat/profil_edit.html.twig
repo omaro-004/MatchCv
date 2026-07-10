@@ -1,0 +1,137 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier mon profil{% endblock %}
+{% block page_title %}Modifier mon profil{% endblock %}
+{% block page_subtitle %}Corrigez ou complétez les informations détectées par l'IA{% endblock %}
+
+{% block body %}
+{% macro field_error(field) %}
+    {% if field.vars.errors|length %}
+        <div class="form-error">{{ form_errors(field) }}</div>
+    {% endif %}
+{% endmacro %}
+
+<div class="card" style="max-width:760px;padding:28px;">
+
+    <div style="display:flex;gap:20px;align-items:center;margin-bottom:24px;">
+        <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#6366f1,#a855f7);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            {% if profil.photo %}
+                <img src="{{ asset(profil.photo) }}" style="width:100%;height:100%;object-fit:cover;" alt="Photo actuelle">
+            {% else %}
+                <span style="color:#fff;font-weight:800;font-size:1.6rem;">{{ profil.nomComplet|first|upper }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <div style="font-weight:700;font-size:1rem;">{{ profil.nomComplet }}</div>
+            <a href="{{ path('app_profil_candidat') }}" style="font-size:.82rem;color:var(--text-muted);">← Retour au profil</a>
+        </div>
+    </div>
+
+    <div style="font-size:.8rem;color:var(--text-muted);background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:22px;">
+        Les champs ci-dessous ont été pré-remplis automatiquement par l'IA à partir de votre CV. Vous pouvez les corriger librement — vos modifications seront conservées.
+    </div>
+
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+
+        <div class="section-title" style="margin-bottom:12px;">Informations générales</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.nomComplet) }}</label>
+                {{ form_widget(form.nomComplet, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.nomComplet) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.numTel) }}</label>
+                {{ form_widget(form.numTel, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.numTel) }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.localisation) }}</label>
+                {{ form_widget(form.localisation, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.localisation) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.typeContrat) }}</label>
+                {{ form_widget(form.typeContrat, {'attr': {'class': 'form-control filter-select', 'style': 'cursor:pointer;'}}) }}
+                {{ _self.field_error(form.typeContrat) }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.bio) }}</label>
+            {{ form_widget(form.bio, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.bio) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.photo) }}</label>
+            {{ form_widget(form.photo, {'attr': {'class': 'form-control'}}) }}
+            <div class="form-hint">Laissez vide pour conserver la photo actuelle.</div>
+            {{ _self.field_error(form.photo) }}
+        </div>
+
+        <div class="section-title" style="margin:24px 0 12px;">Profil enrichi par IA <span style="font-weight:400;color:var(--text-muted);font-size:.78rem;">(un élément par ligne)</span></div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.anneesExperience) }}</label>
+            {{ form_widget(form.anneesExperience, {'attr': {'class': 'form-control', 'style': 'max-width:160px;'}}) }}
+            {{ _self.field_error(form.anneesExperience) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.resumeIa) }}</label>
+            {{ form_widget(form.resumeIa, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.resumeIa) }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.competencesTechniquesText) }}</label>
+                {{ form_widget(form.competencesTechniquesText, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.competencesTechniquesText) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.languesParleesText) }}</label>
+                {{ form_widget(form.languesParleesText, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.languesParleesText) }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.formationsText) }}</label>
+            {{ form_widget(form.formationsText, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.formationsText) }}
+        </div>
+
+        <div class="form-group">
+            <label>{{ form_label(form.experiencesProfessionnellesText) }}</label>
+            {{ form_widget(form.experiencesProfessionnellesText, {'attr': {'class': 'form-control'}}) }}
+            {{ _self.field_error(form.experiencesProfessionnellesText) }}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>{{ form_label(form.projetsAcademiquesText) }}</label>
+                {{ form_widget(form.projetsAcademiquesText, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.projetsAcademiquesText) }}
+            </div>
+            <div class="form-group">
+                <label>{{ form_label(form.softSkillsText) }}</label>
+                {{ form_widget(form.softSkillsText, {'attr': {'class': 'form-control'}}) }}
+                {{ _self.field_error(form.softSkillsText) }}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <a href="{{ path('app_profil_candidat') }}" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</a>
+            <button type="submit" class="btn btn-primary" style="flex:2;justify-content:center;">Enregistrer les modifications</button>
+        </div>
+
+    {{ form_end(form) }}
+
+</div>
+{% endblock %}

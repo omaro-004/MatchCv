@@ -387,19 +387,6 @@
             font-size: .72rem;
             color: #64748b;
         }
-        .sidebar-logout {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            margin-top: 4px;
-            border-radius: var(--radius-sm);
-            font-size: .82rem;
-            color: #64748b;
-            transition: all .15s;
-        }
-        .sidebar-logout:hover { color: var(--danger); background: rgba(239,68,68,.08); }
-        .sidebar-logout svg { width: 15px; height: 15px; }
 
         /* ── MAIN CONTENT ── */
         .main-content {
@@ -468,6 +455,40 @@
         }
         .topbar-user:hover { border-color: var(--accent); }
         .topbar-user-name { font-size: .85rem; font-weight: 600; }
+
+        /* ── TOPBAR USER DROPDOWN (NOUVEAU) ── */
+        .topbar-user-wrapper { position: relative; }
+        .topbar-user-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 210px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 6px;
+            display: none;
+            z-index: 200;
+        }
+        .topbar-user-menu.open { display: block; }
+        .topbar-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            font-size: .85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: background .15s;
+            cursor: pointer;
+        }
+        .topbar-menu-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+        .topbar-menu-item:hover { background: var(--surface-2); }
+        .topbar-menu-item.danger { color: var(--danger); }
+        .topbar-menu-item.danger:hover { background: rgba(239,68,68,.08); }
+        .topbar-menu-divider { height: 1px; background: var(--border); margin: 6px 4px; }
 
         /* ── PAGE CONTENT ── */
         .page-content { padding: 28px; flex: 1; }
@@ -899,12 +920,12 @@
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                     Dashboard
                 </a>
-                <a href="{{ path('app_candidat_offres_liste') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') starts with 'app_offre' %}active{% endif %}">
+                <a href="{{ path('app_candidat_offres_liste') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') starts with 'app_candidat_offre' %}active{% endif %}">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0 1 12 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/></svg>
-                    Offres
+                    Offres matchées
                     <span class="sidebar-badge">24</span>
                 </a>
-                <a href="{{ path('app_candidat_candidatures_liste') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') starts with 'app_candidature' %}active{% endif %}">
+                <a href="{{ path('app_candidat_candidatures_liste') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') starts with 'app_candidat_candidatures' %}active{% endif %}">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
                     Mes candidatures
                     <span class="sidebar-badge">7</span>
@@ -915,7 +936,7 @@
                     <span class="sidebar-badge">3</span>
                 </a>
                 <div class="sidebar-section-label" style="margin-top:8px;">Compte</div>
-                <a href="{{ path('app_profil_candidat') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') == 'app_profil_candidat' %}active{% endif %}">
+                <a href="{{ path('app_profil_candidat') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') in ['app_profil_candidat', 'app_profil_candidat_edit'] %}active{% endif %}">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Mon profil
                 </a>
@@ -937,7 +958,7 @@
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8M10 12h4"/></svg>
         Offres archivées
     </a>
-    <a href="{{ path('app_entreprise_candidatures_liste') }}" class="sidebar-nav-item">
+    <a href="#" class="sidebar-nav-item">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
         Candidatures
     </a>
@@ -951,7 +972,7 @@
                     <span class="sidebar-badge">5</span>
                 </a>
                 <div class="sidebar-section-label" style="margin-top:8px;">Compte</div>
-                <a href="#" class="sidebar-nav-item">
+                <a href="{{ path('app_profil_entreprise') }}" class="sidebar-nav-item {% if app.request.attributes.get('_route') starts with 'app_profil_entreprise' %}active{% endif %}">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"/></svg>
                     Mon profil entreprise
                 </a>
@@ -981,7 +1002,8 @@
         </nav>
 
         <div class="sidebar-footer">
-            <div class="sidebar-user">
+            {% set sidebar_profile_route = app.user.role == 'candidat' ? 'app_profil_candidat' : (app.user.role == 'entreprise' ? 'app_profil_entreprise' : null) %}
+            <a href="{{ sidebar_profile_route ? path(sidebar_profile_route) : '#' }}" class="sidebar-user" style="text-decoration:none;">
                 <div class="sidebar-avatar">
                     {% if app.user.role == 'candidat' and app.user.profilCandidat %}
                         {{ app.user.profilCandidat.nomComplet|first|upper }}
@@ -1003,10 +1025,6 @@
                     </strong>
                     <small>{{ app.user.email }}</small>
                 </div>
-            </div>
-            <a href="{{ path('app_logout') }}" class="sidebar-logout">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>
-                Déconnexion
             </a>
         </div>
     </aside>
@@ -1022,22 +1040,45 @@
                     <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6.002 6.002 0 0 0-4-5.659V5a2 2 0 1 0-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
                     <span class="topbar-notif-dot"></span>
                 </div>
-                <div class="topbar-user">
-                    <div class="sidebar-avatar" style="width:28px;height:28px;font-size:.75rem;">
-                        {% if app.user.role == 'candidat' and app.user.profilCandidat %}
-                            {{ app.user.profilCandidat.nomComplet|first|upper }}
-                        {% elseif app.user.role == 'entreprise' and app.user.profilEntreprise %}
-                            {{ app.user.profilEntreprise.raisonSociale|first|upper }}
-                        {% else %}A{% endif %}
+
+                {# ── NOUVEAU : dropdown fonctionnel Profil / Déconnexion ── #}
+                <div class="topbar-user-wrapper" id="topbar-user-wrapper">
+                    <div class="topbar-user" id="topbar-user-toggle">
+                        <div class="sidebar-avatar" style="width:28px;height:28px;font-size:.75rem;">
+                            {% if app.user.role == 'candidat' and app.user.profilCandidat %}
+                                {{ app.user.profilCandidat.nomComplet|first|upper }}
+                            {% elseif app.user.role == 'entreprise' and app.user.profilEntreprise %}
+                                {{ app.user.profilEntreprise.raisonSociale|first|upper }}
+                            {% else %}A{% endif %}
+                        </div>
+                        <span class="topbar-user-name">
+                            {% if app.user.role == 'candidat' and app.user.profilCandidat %}
+                                {{ app.user.profilCandidat.nomComplet }}
+                            {% elseif app.user.role == 'entreprise' and app.user.profilEntreprise %}
+                                {{ app.user.profilEntreprise.raisonSociale }}
+                            {% else %}Admin{% endif %}
+                        </span>
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                     </div>
-                    <span class="topbar-user-name">
-                        {% if app.user.role == 'candidat' and app.user.profilCandidat %}
-                            {{ app.user.profilCandidat.nomComplet }}
-                        {% elseif app.user.role == 'entreprise' and app.user.profilEntreprise %}
-                            {{ app.user.profilEntreprise.raisonSociale }}
-                        {% else %}Admin{% endif %}
-                    </span>
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+
+                    <div class="topbar-user-menu" id="topbar-user-menu">
+                        {% if app.user.role == 'candidat' %}
+                            <a href="{{ path('app_profil_candidat') }}" class="topbar-menu-item">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Mon profil
+                            </a>
+                        {% elseif app.user.role == 'entreprise' %}
+                            <a href="{{ path('app_profil_entreprise') }}" class="topbar-menu-item">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Mon profil
+                            </a>
+                        {% endif %}
+                        <div class="topbar-menu-divider"></div>
+                        <a href="{{ path('app_logout') }}" class="topbar-menu-item danger">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v1"/></svg>
+                            Déconnexion
+                        </a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -1079,6 +1120,36 @@
 
     {% block auth_body %}{% endblock %}
 
+{% endif %}
+
+{# ── NOUVEAU : script du dropdown top-right ── #}
+{% if app.user %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var wrapper = document.getElementById('topbar-user-wrapper');
+    var toggle  = document.getElementById('topbar-user-toggle');
+    var menu    = document.getElementById('topbar-user-menu');
+
+    if (!wrapper || !toggle || !menu) return;
+
+    toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!wrapper.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            menu.classList.remove('open');
+        }
+    });
+});
+</script>
 {% endif %}
 
 {% block javascripts %}{% endblock %}
