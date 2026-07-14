@@ -1,23 +1,25 @@
 {# templates/face_id/verify.html.twig
    Page de vérification faciale lors du login.
    Affiché uniquement si face_id_enabled = true (LoginSuccessHandler).
-   L'utilisateur est déjà authentifié (email/password OK) — app.user N'EST
-   donc PAS null à ce stade. base.html.twig bascule alors automatiquement
-   sur le layout "sidebar" et rend le bloc {% block body %} (PAS auth_body,
-   qui n'est rendu QUE si app.user est null).
-   C'est pour cela que ce template doit utiliser {% block body %}.
-   L'accès aux autres routes protégées reste bloqué par FaceIdListener
-   jusqu'à ce que la session 'face_id_verified' soit mise à true.
+
+   CORRECTIF : cette page est maintenant totalement INDÉPENDANTE du
+   dashboard. base.html.twig détecte la route 'app_face_id_verify' et
+   force l'affichage du layout "auth" (sans sidebar ni topbar), même si
+   l'utilisateur est déjà authentifié à ce stade. Cela empêche le candidat
+   de "voir" ou d'accéder à son espace tant qu'il n'a pas réussi la
+   vérification faciale (en complément du blocage serveur assuré par
+   FaceIdListener, dont la priorité a également été corrigée).
+
+   Ce template utilise donc {% block auth_body %} (comme login/inscription)
+   et non plus {% block body %}.
 #}
 {% extends 'base.html.twig' %}
 
 {% block title %}Vérification Face ID{% endblock %}
-{% block page_title %}Vérification Face ID{% endblock %}
-{% block page_subtitle %}Confirmez votre identité pour accéder à votre espace{% endblock %}
 
-{% block body %}
-<div style="min-height:calc(100vh - 140px);display:flex;align-items:center;justify-content:center;padding:24px 0;">
-    <div class="card" style="width:100%;max-width:480px;padding:40px 36px;">
+{% block auth_body %}
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width:480px;">
 
         {# ── En-tête ── #}
         <div class="auth-logo" style="margin-bottom:20px;">
@@ -34,6 +36,10 @@
             </div>
             <h1>Vérification <span>Face ID</span></h1>
             <p>Bonjour {{ user_nom|split(' ')|first }} — Confirmez votre identité pour continuer</p>
+        </div>
+
+        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:20px;text-align:center;">
+            🔒 Votre espace MatchCV reste verrouillé tant que votre identité n'est pas confirmée.
         </div>
 
         {# ── Statut du modèle ── #}

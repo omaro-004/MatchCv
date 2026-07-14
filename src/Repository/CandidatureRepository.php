@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Candidature;
+use App\Entity\Offre;
 use App\Entity\ProfilCandidat;
 use App\Entity\ProfilEntreprise;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -27,6 +28,30 @@ class CandidatureRepository extends ServiceEntityRepository
             ->setParameter('entreprise', $entreprise)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * @return Candidature[]
+     */
+    public function findByEntreprise(ProfilEntreprise $entreprise, ?Offre $offre = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('c')
+            ->join('c.offre', 'o')
+            ->join('c.candidat', 'p')
+            ->addSelect('o', 'p')
+            ->andWhere('o.entreprise = :entreprise')
+            ->setParameter('entreprise', $entreprise)
+            ->orderBy('c.dateCandidature', 'DESC');
+
+        if ($offre !== null) {
+            $queryBuilder
+                ->andWhere('c.offre = :offre')
+                ->setParameter('offre', $offre);
+        }
+
+        return $queryBuilder
+            ->getQuery()
+            ->getResult();
     }
 
     /**

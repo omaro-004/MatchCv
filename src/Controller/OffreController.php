@@ -6,6 +6,7 @@ use App\Entity\Offre;
 use App\Entity\ProfilEntreprise;
 use App\Entity\User;
 use App\Form\OffreType;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -30,6 +31,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *
  * Règle RM-O01 : seule l'entreprise auteure d'une offre peut la modifier
  * ou l'archiver — vérifié explicitement dans findOwnedOffreOrThrow().
+ *
+ * NOUVEAU : la création d'une offre notifie tous les candidats dont le
+ * type de contrat recherché correspond à celui de l'offre publiée.
  */
 #[IsGranted('ROLE_ENTREPRISE')]
 class OffreController extends AbstractController
@@ -59,7 +63,7 @@ class OffreController extends AbstractController
     }
 
     #[Route('/entreprise/offres/creer', name: 'app_entreprise_offre_creer', methods: ['GET', 'POST'])]
-    public function creer(Request $request, EntityManagerInterface $em): Response
+    public function creer(Request $request, EntityManagerInterface $em, NotificationService $notificationService): Response
     {
         $profil = $this->getProfilEntrepriseOrThrow();
 
@@ -72,6 +76,10 @@ class OffreController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($offre);
             $em->flush();
+
+            // NOUVEAU — notification des candidats dont le type de contrat
+            // recherché correspond à celui de cette nouvelle offre.
+            $notificationService->notifierNouvelleOffre($offre);
 
             $this->addFlash('success', 'L\'offre « ' . $offre->getTitre() . ' » a été publiée avec succès.');
 

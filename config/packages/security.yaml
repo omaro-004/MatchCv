@@ -4,6 +4,8 @@
 # Ajouts pour le Face ID :
 #   - success_handler sur form_login
 #   - access_control pour la route /face-id/verify
+# Ajout pour les Notifications :
+#   - access_control pour /notifications (commun candidat/entreprise)
 # ================================================================
 
 security:
@@ -82,6 +84,10 @@ security:
         - { path: ^/face-id/verify,    roles: ROLE_CANDIDAT }
         - { path: ^/face-id/validate,  roles: ROLE_CANDIDAT }
         - { path: ^/face-id/fallback,  roles: ROLE_CANDIDAT }
+
+        # NOUVEAU — Notifications : commune aux candidats et entreprises,
+        # chaque utilisateur ne voit que les siennes (vérifié en Controller).
+        - { path: ^/notifications,      roles: IS_AUTHENTICATED_FULLY }
 
         # Routes protégées par rôle (règle RM-R03)
         - { path: ^/candidat,           roles: ROLE_CANDIDAT }

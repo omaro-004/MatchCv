@@ -7,6 +7,7 @@ use App\Entity\Offre;
 use App\Entity\ProfilEntreprise;
 use App\Entity\User;
 use App\Repository\CandidatureRepository;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +22,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * candidatures reçues (triées par score IA — RM-C-relatif à US-E04) et
  * changement de statut (RM-C06 : seul le recruteur propriétaire de l'offre
  * peut modifier le statut d'une candidature).
+ *
+ * CORRECTIF : le changement de statut (Accepté/Refusé) déclenche désormais
+ * NotificationService::notifierChangementStatut(), qui était défini mais
+ * jamais appelé — c'est pour cela qu'aucune notification n'était générée
+ * pour le candidat (règle RM-C07).
  */
 #[IsGranted('ROLE_ENTREPRISE')]
 class CandidatureEntrepriseController extends AbstractController
@@ -49,8 +55,12 @@ class CandidatureEntrepriseController extends AbstractController
     }
 
     #[Route('/entreprise/candidatures/{id}/statut', name: 'app_entreprise_candidature_statut', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function changerStatut(int $id, Request $request, EntityManagerInterface $em): Response
-    {
+    public function changerStatut(
+        int $id,
+        Request $request,
+        EntityManagerInterface $em,
+        NotificationService $notificationService
+    ): Response {
         $profil = $this->getProfilEntrepriseOrThrow();
 
         $candidature = $em->getRepository(Candidature::class)->find($id);
@@ -70,8 +80,17 @@ class CandidatureEntrepriseController extends AbstractController
             return $this->json(['error' => 'Statut invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
+        // On ne notifie que si le statut change réellement (évite les doublons
+        // si jamais l'action est déclenchée deux fois sur un statut identique).
+        $statutAChange = $candidature->getStatut() !== $statut;
+
         $candidature->setStatut($statut);
         $em->flush();
+
+        // ── CORRECTIF : notification du candidat (règle RM-C07) ──────────
+        if ($statutAChange) {
+            $notificationService->notifierChangementStatut($candidature);
+        }
 
         return $this->json([
             'success' => true,
