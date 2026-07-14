@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes événements{% endblock %}
+
+{% block body %}
+<style>
+  .events-hero{background:linear-gradient(135deg,#6a11cb 0%,#2575fc 100%);color:#fff;padding:30px;border-radius:12px;margin-bottom:20px}
+  .events-container{display:flex;gap:20px}
+  .events-list{flex:2}
+  .events-actions{flex:1}
+  .event-card{background:#fff;border-radius:10px;padding:18px;margin-bottom:12px;box-shadow:0 6px 18px rgba(20,20,30,0.06)}
+  .muted{color:#666}
+  .tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
+  .tag-online{background:linear-gradient(90deg,#00c6ff,#0072ff);color:#fff}
+  .tag-pres{background:linear-gradient(90deg,#f7971e,#ffd200);color:#222}
+</style>
+
+<div class="events-hero">
+  <h1>Gestion des événements</h1>
+  <p class="muted">Créez, modifiez, annulez et archivez vos événements. Recherches et filtres en temps réel.</p>
+  <a class="btn btn-light" href="{{ path('app_entreprise_events_new') }}">Ajouter un événement</a>
+</div>
+
+<div class="events-container">
+  <div class="events-list">
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <input id="search" class="form-control" placeholder="Rechercher..." />
+      <select id="filter-type" class="form-control" style="width:160px">
+        <option value="all">Tous</option>
+        <option value="online">En ligne</option>
+        <option value="presential">Présentiel</option>
+      </select>
+      <input id="filter-date" type="date" class="form-control" />
+    </div>
+
+    <div id="events" data-now="{{ now.format('c') }}">
+      {% for e in events %}
+        <div class="event-card" data-title="{{ e.getTitre()|lower }}" data-desc="{{ e.getDescription()|lower }}" data-online="{{ e.isOnline() ? 'online' : 'presential' }}" data-date="{{ e.getDebutAt().format('Y-m-d') }}">
+          <div style="display:flex;justify-content:space-between;align-items:start">
+            <div>
+              <h3>{{ e.getTitre() }}</h3>
+              <p class="muted">{{ e.getDebutAt().format('d/m/Y H:i') }} — {{ e.getFinAt().format('d/m/Y H:i') }}</p>
+            </div>
+            <div style="text-align:right">
+              {% if e.isOnline() %}
+                <span class="tag tag-online">En ligne</span>
+              {% else %}
+                <span class="tag tag-pres">Présentiel</span>
+              {% endif %}
+              <div class="muted">Capacité: {{ e.getCapacite() ?: '—' }}</div>
+            </div>
+          </div>
+
+          <p>{{ e.getDescription()|slice(0,300) }}{% if e.getDescription()|length > 300 %}…{% endif %}</p>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <a class="btn btn-sm btn-primary" href="{{ path('app_entreprise_events_show', {'id': e.getId()}) }}">Voir</a>
+            <a class="btn btn-sm btn-secondary" href="{{ path('app_entreprise_events_edit', {'id': e.getId()}) }}">Modifier</a>
+            <form method="post" action="{{ path('app_entreprise_events_cancel', {'id': e.getId()}) }}" style="display:inline" onsubmit="return confirm('Annuler cet événement ?')">
+              <input type="hidden" name="note" value="Annulé par l'organisateur" />
+              <button class="btn btn-sm btn-warning" type="submit">Annuler</button>
+            </form>
+            <form method="post" action="{{ path('app_entreprise_events_archive', {'id': e.getId()}) }}" style="display:inline">
+              <button class="btn btn-sm btn-outline-secondary" type="submit">{{ e.isArchive() ? 'Désarchiver' : 'Archiver' }}</button>
+            </form>
+            {% if e.isAnnule() %}
+              <span class="muted">Annulé — {{ e.getNoteAnnulation() }}</span>
+            {% else %}
+              {% set now_dt = now %}
+              {% if e.getFinAt() < now_dt %}
+                <span class="muted">Terminé</span>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="event-card">Aucun événement pour le moment.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="events-actions">
+    <div class="card p-3">
+      <h4>Astuce</h4>
+      <p class="muted">Utilisez la recherche pour filtrer par titre ou description. Les archives masquent l'événement dans le flux principal.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const search = document.getElementById('search');
+  const filterType = document.getElementById('filter-type');
+  const filterDate = document.getElementById('filter-date');
+  const events = Array.from(document.querySelectorAll('#events .event-card'));
+
+  function applyFilters(){
+    const q = search.value.trim().toLowerCase();
+    const type = filterType.value;
+    const date = filterDate.value;
+
+    events.forEach(el=>{
+      const title = el.dataset.title;
+      const desc = el.dataset.desc;
+      const online = el.dataset.online;
+      const d = el.dataset.date;
+
+      let ok = true;
+      if(q && !(title.includes(q) || desc.includes(q))) ok = false;
+      if(type !== 'all' && online !== type) ok = false;
+      if(date && d !== date) ok = false;
+
+      el.style.display = ok ? '' : 'none';
+    });
+  }
+
+  search.addEventListener('input', applyFilters);
+  filterType.addEventListener('change', applyFilters);
+  filterDate.addEventListener('change', applyFilters);
+</script>
+
+{% endblock %}

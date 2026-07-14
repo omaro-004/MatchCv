@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails événement{% endblock %}
+
+{% block body %}
+<div class="container">
+  <h1>{{ evenement.titre }}</h1>
+  <p class="muted">{{ evenement.debutAt.format('d/m/Y H:i') }} — {{ evenement.finAt.format('d/m/Y H:i') }}</p>
+  <div>{{ evenement.description|raw }}</div>
+  <p>Type: {{ evenement.isOnline() ? 'En ligne' : 'Présentiel' }}</p>
+  <p>Capacité: {{ evenement.capacite ?: '—' }}</p>
+  <a class="btn btn-secondary" href="{{ path('app_entreprise_events') }}">Retour</a>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{% if mode == 'edit' %}Modifier l'offre{% else %}Créer une offre{% endif %}{% endblock %}
+{% block page_title %}{% if mode == 'edit' %}Modifier l'offre{% else %}Nouvelle offre{% endif %}{% endblock %}
+{% block page_subtitle %}Remplissez les informations pour publier une offre attractive et complète.{% endblock %}
+
+{% block body %}
+<div class="card" style="padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div>
+            <div class="card-title">{% if mode == 'edit' %}Modifier l'offre{% else %}Ajouter une offre{% endif %}</div>
+            <div class="card-subtitle">Un formulaire complet pour capturer tous les détails du poste.</div>
+        </div>
+        <a href="{{ path('app_entreprise_dashboard') }}" class="btn btn-secondary btn-sm">Retour au tableau</a>
+    </div>
+
+    {{ form_start(form, {'attr': {'class': 'offer-form'}}) }}
+    <div style="margin-bottom:18px;padding:14px 16px;border-radius:var(--radius-md);background:linear-gradient(135deg, rgba(76,115,255,.09), rgba(20,184,166,.08));border:1px solid rgba(76,115,255,.16);color:var(--text-secondary);font-size:.9rem;">
+        Les champs marqués en <strong>gras</strong> sont obligatoires pour publier une offre complète et visible.
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:20px;">
+        <div class="stat-card">
+            <div class="stat-card-label">Étape 1 · L'essentiel</div>
+            <div class="stat-card-value" style="font-size:1rem;">Titre, type, description, compétences</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-label">Étape 2 · Conditions</div>
+            <div class="stat-card-value" style="font-size:1rem;">Modalité, localisation, durée, salaire</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+        <div class="form-group">{{ form_row(form.titre, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.type, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group" style="grid-column:1 / -1;">{{ form_row(form.description, {'attr': {'class': 'form-control', 'rows': 8}}) }}</div>
+        <div class="form-group" style="grid-column:1 / -1;">
+            <label class="form-label">Compétences requises</label>
+            <input type="text" class="form-control choice-search" data-choice-group="competences" placeholder="Rechercher une compétence (ex. S)" style="margin-bottom:10px;">
+            <div class="choice-grid" data-choice-group="competences">
+                {{ form_widget(form.competences) }}
+            </div>
+        </div>
+        <div class="form-group">{{ form_row(form.modeTravail, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.localisation, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.duree, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.dateDebut, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.salaire, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.niveauRequis, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.niveauEtudes, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.experience, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group" style="grid-column:1 / -1;">
+            <label class="form-label">Langues requises</label>
+            <input type="text" class="form-control choice-search" data-choice-group="langues" placeholder="Rechercher une langue (ex. A)" style="margin-bottom:10px;">
+            <div class="choice-grid" data-choice-group="langues">
+                {{ form_widget(form.langues) }}
+            </div>
+        </div>
+        <div class="form-group">{{ form_row(form.nombrePostes, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group">{{ form_row(form.secteur, {'attr': {'class': 'form-control'}}) }}</div>
+        <div class="form-group" style="grid-column:1 / -1;">{{ form_row(form.avantages, {'attr': {'class': 'form-control', 'rows': 4}}) }}</div>
+        <div class="form-group">{{ form_row(form.dateLimite, {'attr': {'class': 'form-control'}}) }}</div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;">
+        <button type="submit" class="btn btn-primary">{% if mode == 'edit' %}Enregistrer les modifications{% else %}Ajouter l'offre{% endif %}</button>
+    </div>
+    {{ form_end(form) }}
+</div>
+
+<script>
+document.querySelectorAll('.choice-search').forEach((input) => {
+    input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+        const container = document.querySelector(`[data-choice-group="${input.dataset.choiceGroup}"]`);
+        if (!container) return;
+
+        container.querySelectorAll('.form-check').forEach((item) => {
+            const label = item.textContent.trim().toLowerCase();
+            const matches = query === '' || label.startsWith(query) || label.includes(query);
+            item.style.display = matches ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

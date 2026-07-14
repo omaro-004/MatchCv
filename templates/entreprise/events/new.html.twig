@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Créer un événement{% endblock %}
+
+{% block body %}
+<div class="container">
+  <h1>Ajouter un événement</h1>
+  {{ form_start(form) }}
+    {{ form_row(form.titre) }}
+    {{ form_row(form.description) }}
+    {{ form_row(form.isOnline) }}
+    {{ form_row(form.lieu) }}
+    {{ form_row(form.debutAt) }}
+    {{ form_row(form.finAt) }}
+    {{ form_row(form.capacite) }}
+    <button class="btn btn-primary">Créer</button>
+  {{ form_end(form) }}
+</div>
+
+<script>
+  // simple client-side validation: require lieu when not online
+  const isOnlineCheckbox = document.querySelector('#evenement_isOnline');
+  const lieuField = document.querySelector('#evenement_lieu');
+
+  function toggleLieu(){
+    if(isOnlineCheckbox && lieuField){
+      lieuField.required = !isOnlineCheckbox.checked;
+    }
+  }
+  if(isOnlineCheckbox){ isOnlineCheckbox.addEventListener('change', toggleLieu); toggleLieu(); }
+</script>
+
+{% endblock %}

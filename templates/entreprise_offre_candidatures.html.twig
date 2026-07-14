@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Candidatures · {{ offre.titre }}{% endblock %}
+{% block page_title %}Candidatures{% endblock %}
+{% block page_subtitle %}{{ offre.titre }} · Suivez les profils intéressés par cette offre.{% endblock %}
+
+{% block body %}
+<div class="card" style="padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+        <div>
+            <div class="card-title">{{ offre.titre }}</div>
+            <div class="card-subtitle">{{ offre.localisation }} · {{ offre.type|capitalize }} · {{ offre.candidaturesCount }} candidature(s)</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ path('app_entreprise_dashboard') }}" class="btn btn-secondary btn-sm">Retour aux offres</a>
+            <a href="{{ path('app_entreprise_offre_edit', {'id': offre.id}) }}" class="btn btn-outline-accent btn-sm">Modifier l'offre</a>
+        </div>
+    </div>
+
+    {% if offre.candidaturesCount == 0 %}
+        <div style="border:1px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;background:linear-gradient(135deg, rgba(76,115,255,.06), rgba(20,184,166,.06));">
+            <div style="width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;background:rgba(76,115,255,.14);color:var(--primary);">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
+            </div>
+            <div style="font-weight:700;font-size:1rem;color:var(--text-primary);margin-bottom:8px;">Aucune candidature pour le moment</div>
+            <div style="color:var(--text-muted);max-width:560px;margin:0 auto;line-height:1.6;">Cette offre est encore en préparation ou n’a pas encore reçu d’intérêts. Vous pouvez la peaufiner et la relancer plus tard.</div>
+        </div>
+    {% else %}
+        <div class="data-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Candidat</th>
+                        <th>Profil</th>
+                        <th>Statut</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">La gestion avancée des candidatures sera intégrée prochainement.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

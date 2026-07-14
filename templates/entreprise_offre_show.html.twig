@@ -1,0 +1,110 @@
+{# entreprise_offre_show.html.twig
+   Nouveau template : détail en lecture seule d'une offre (bouton "Voir").
+   Hypothèse : votre base.html.twig définit les blocks {% block title %} et
+   {% block body %} et charge déjà Bootstrap (comme le suggèrent les classes
+   form-control / form-select utilisées dans vos formulaires existants).
+   Adaptez le nom du base template / les classes si besoin. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ offre.titre }} — Détail de l'offre{% endblock %}
+
+{% block body %}
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">{{ offre.titre }}</h1>
+            <span class="badge {{ offre.displayStatus == 'active' ? 'bg-success' : (offre.displayStatus == 'expired' ? 'bg-warning text-dark' : (offre.displayStatus == 'archived' ? 'bg-secondary' : 'bg-danger')) }}">
+                {{ offre.statusLabel }}
+            </span>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_entreprise_offre_edit', {id: offre.id}) }}" class="btn btn-outline-primary">
+                Modifier
+            </a>
+            <a href="{{ path('app_entreprise_dashboard') }}" class="btn btn-outline-secondary">
+                Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="h5">Description</h2>
+                    <p class="text-body">{{ offre.description|nl2br }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="h5">Compétences requises</h2>
+                    {% if offre.competences %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for competence in offre.competences|split('|') %}
+                                <span class="badge bg-light text-dark border">{{ competence }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune compétence renseignée.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="h5">Langues requises</h2>
+                    {% if offre.langues %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for langue in offre.langues|split('|') %}
+                                <span class="badge bg-light text-dark border">{{ langue }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune langue renseignée.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if offre.avantages %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h2 class="h5">Avantages</h2>
+                        <p class="text-body mb-0">{{ offre.avantages|nl2br }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="h5 mb-3">Informations</h2>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><strong>Type :</strong> {{ offre.type }}</li>
+                        <li class="mb-2"><strong>Mode de travail :</strong> {{ offre.modeTravail }}</li>
+                        <li class="mb-2"><strong>Localisation :</strong> {{ offre.localisation }}</li>
+                        <li class="mb-2"><strong>Durée :</strong> {{ offre.duree ?: '—' }}</li>
+                        <li class="mb-2"><strong>Date de début :</strong> {{ offre.dateDebut ? offre.dateDebut|date('d/m/Y') : '—' }}</li>
+                        <li class="mb-2"><strong>Date limite :</strong> {{ offre.dateLimite ? offre.dateLimite|date('d/m/Y') : '—' }}</li>
+                        <li class="mb-2"><strong>Salaire :</strong> {{ offre.salaire ?: 'Non communiqué' }}</li>
+                        <li class="mb-2"><strong>Niveau requis :</strong> {{ offre.niveauRequis ?: '—' }}</li>
+                        <li class="mb-2"><strong>Niveau d'études :</strong> {{ offre.niveauEtudes ?: '—' }}</li>
+                        <li class="mb-2"><strong>Expérience :</strong> {{ offre.experience ?: '—' }}</li>
+                        <li class="mb-2"><strong>Nombre de postes :</strong> {{ offre.nombrePostes }}</li>
+                        <li class="mb-2"><strong>Secteur :</strong> {{ offre.secteur ?: '—' }}</li>
+                        <li class="mb-0"><strong>Candidatures reçues :</strong> {{ offre.candidaturesCount }}</li>
+                    </ul>
+                </div>
+            </div>
+
+            <a href="{{ path('app_entreprise_offre_candidatures', {id: offre.id}) }}" class="btn btn-primary w-100 mt-3">
+                Voir les candidatures ({{ offre.candidaturesCount }})
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
