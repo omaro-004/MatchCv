@@ -23,10 +23,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * changement de statut (RM-C06 : seul le recruteur propriétaire de l'offre
  * peut modifier le statut d'une candidature).
  *
- * CORRECTIF : le changement de statut (Accepté/Refusé) déclenche désormais
- * NotificationService::notifierChangementStatut(), qui était défini mais
- * jamais appelé — c'est pour cela qu'aucune notification n'était générée
- * pour le candidat (règle RM-C07).
+ * NOUVEAU : changerStatut() déclenche désormais NotificationService::
+ * notifierChangementStatut(), qui crée la notification in-app ET envoie
+ * un email au candidat avec la décision (accepté/refusé) — règle RM-C07.
  */
 #[IsGranted('ROLE_ENTREPRISE')]
 class CandidatureEntrepriseController extends AbstractController
@@ -80,17 +79,11 @@ class CandidatureEntrepriseController extends AbstractController
             return $this->json(['error' => 'Statut invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
-        // On ne notifie que si le statut change réellement (évite les doublons
-        // si jamais l'action est déclenchée deux fois sur un statut identique).
-        $statutAChange = $candidature->getStatut() !== $statut;
-
         $candidature->setStatut($statut);
         $em->flush();
 
-        // ── CORRECTIF : notification du candidat (règle RM-C07) ──────────
-        if ($statutAChange) {
-            $notificationService->notifierChangementStatut($candidature);
-        }
+        // NOUVEAU — notification in-app + email au candidat (RM-C07).
+        $notificationService->notifierChangementStatut($candidature);
 
         return $this->json([
             'success' => true,

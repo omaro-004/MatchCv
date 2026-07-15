@@ -9,6 +9,9 @@ use App\Entity\Offre;
 use App\Entity\User;
 use App\Repository\ProfilCandidatRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
+use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -19,17 +22,29 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * Controllers déclencheurs restent minces (ils appellent une seule méthode
  * après leur flush() principal).
  *
+ * NOUVEAU : en plus de la notification in-app, un email est envoyé au
+ * candidat lorsque le statut de sa candidature passe à "Accepté" ou
+ * "Refusé" (notifierChangementStatut). C'est la SEULE notification qui
+ * déclenche un envoi d'email — toutes les autres (nouvelle candidature,
+ * nouvel avis, nouvelle offre) restent uniquement in-app, sans email.
+ *
  * Principe de robustesse : chaque méthode vérifie la présence des relations
  * nécessaires (destinataire, offre...) et ne fait rien si elles manquent —
  * jamais d'exception qui casserait le flux métier principal (candidature,
- * changement de statut, etc.).
+ * changement de statut, etc.). Un échec d'envoi d'email (SMTP indisponible,
+ * DSN mal configuré...) est loggé mais NE DOIT JAMAIS empêcher la mise à
+ * jour du statut de la candidature ni la création de la notification in-app.
  */
 class NotificationService
 {
+    private const MAIL_FROM = 'no-reply@matchcv.com';
+
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ProfilCandidatRepository $profilCandidatRepository,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly MailerInterface $mailer,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -60,6 +75,10 @@ class NotificationService
 
     /**
      * Candidat notifié : le statut d'une de ses candidatures a changé.
+     *
+     * NOUVEAU : en plus de la notification in-app (comportement existant,
+     * inchangé), un email esthétique est envoyé au candidat avec la
+     * décision de l'entreprise (accepté ou refusé).
      */
     public function notifierChangementStatut(Candidature $candidature): void
     {
@@ -73,10 +92,13 @@ class NotificationService
 
         $lien = $this->urlGenerator->generate('app_candidat_candidatures_liste');
 
-        $message = $candidature->getStatut() === Candidature::STATUT_ACCEPTE
+        $accepte = $candidature->getStatut() === Candidature::STATUT_ACCEPTE;
+
+        $message = $accepte
             ? sprintf('Bonne nouvelle ! Votre candidature pour « %s » a été acceptée.', $offre->getTitre())
             : sprintf('Votre candidature pour « %s » a été refusée.', $offre->getTitre());
 
+        // ── 1. Notification in-app (comportement existant, inchangé) ──────
         $this->creer(
             $destinataire,
             Notification::TYPE_STATUT_CANDIDATURE,
@@ -84,6 +106,9 @@ class NotificationService
             $message,
             $lien
         );
+
+        // ── 2. NOUVEAU — Email de la décision ──────────────────────────────
+        $this->envoyerEmailChangementStatut($candidature, $destinataire, $offre, $accepte);
     }
 
     /**
@@ -162,5 +187,41 @@ class NotificationService
         $this->entityManager->flush();
 
         return $notification;
+    }
+
+    /**
+     * Envoie l'email de décision (accepté/refusé) au candidat. Ne bloque
+     * jamais le flux principal en cas d'échec (SMTP down, DSN invalide...).
+     */
+    private function envoyerEmailChangementStatut(Candidature $candidature, User $destinataire, Offre $offre, bool $accepte): void
+    {
+        $candidat = $candidature->getCandidat();
+
+        try {
+            $email = (new TemplatedEmail())
+                ->from(self::MAIL_FROM)
+                ->to($destinataire->getEmail())
+                ->subject($accepte
+                    ? '✓ Votre candidature a été acceptée — ' . $offre->getTitre()
+                    : 'Mise à jour de votre candidature — ' . $offre->getTitre())
+                ->htmlTemplate('emails/candidature_statut.html.twig')
+                ->context([
+                    'accepte' => $accepte,
+                    'candidat_nom' => $candidat?->getNomComplet() ?? $destinataire->getEmail(),
+                    'candidat_prenom' => $candidat ? explode(' ', trim($candidat->getNomComplet()))[0] : '',
+                    'offre_titre' => $offre->getTitre(),
+                    'entreprise_nom' => $offre->getEntreprise()?->getRaisonSociale() ?? 'L\'entreprise',
+                    'lien_candidatures' => $this->urlGenerator->generate(
+                        'app_candidat_candidatures_liste',
+                        [],
+                        UrlGeneratorInterface::ABSOLUTE_URL
+                    ),
+                ]);
+
+            $this->mailer->send($email);
+        } catch (\Throwable $e) {
+            // On ne casse jamais le changement de statut si l'email échoue.
+            $this->logger->error('NotificationService: échec envoi email statut candidature — ' . $e->getMessage());
+        }
     }
 }

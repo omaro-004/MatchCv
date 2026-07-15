@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\PasswordResetEmailCode;
 use App\Entity\PasswordResetToken;
 use App\Entity\User;
+use App\Repository\PasswordResetEmailCodeRepository;
 use App\Repository\PasswordResetTokenRepository;
 use App\Repository\UserRepository;
 use App\Security\TotpService;
@@ -72,7 +74,7 @@ class PasswordController extends AbstractController
 
         return $this->render('password_reset_method.html.twig', [
             'totp_available' => $user->isTotpEnabled(),
-            'masked_email'   => $this->maskEmail($user->getEmail()),
+            'masked_email' => $this->maskEmail($user->getEmail()),
         ]);
     }
 
@@ -271,6 +273,194 @@ class PasswordController extends AbstractController
         }
 
         return $this->render('password_reset_totp_new_password.html.twig');
+    }
+
+    // ================================================================
+    //  MÉTHODE C (NOUVEAU) — Récupération via CODE envoyé par email
+    // ================================================================
+
+    /**
+     * Étape C1 : confirmation de l'adresse email avant envoi du code.
+     * Le candidat doit retaper l'email exact de son compte (facteur de
+     * sécurité supplémentaire — évite d'envoyer le code sur simple clic).
+     */
+    #[Route('/mot-de-passe-oublie/code-email', name: 'app_password_reset_email_code_request', methods: ['GET'])]
+    public function emailCodeRequest(Request $request, EntityManagerInterface $em): Response
+    {
+        $userId = $request->getSession()->get('password_reset_candidate_user_id');
+        $user = $userId ? $em->find(User::class, $userId) : null;
+
+        if (!$user) {
+            $this->addFlash('error', 'Veuillez d\'abord identifier votre compte.');
+            return $this->redirectToRoute('app_forgot_password');
+        }
+
+        return $this->render('password_reset_email_code_request.html.twig', [
+            'masked_email' => $this->maskEmail($user->getEmail()),
+        ]);
+    }
+
+    /**
+     * Étape C2 : génère le code à 6 chiffres, le stocke (hashé) et
+     * l'envoie par email.
+     */
+    #[Route('/mot-de-passe-oublie/code-email/envoyer', name: 'app_password_reset_email_code_send', methods: ['POST'])]
+    public function sendEmailCode(
+        Request $request,
+        EntityManagerInterface $em,
+        MailerInterface $mailer,
+        PasswordResetEmailCodeRepository $codeRepository
+    ): Response {
+        if (!$this->isCsrfTokenValid('password_reset_email_code_send', (string) $request->request->get('_csrf_token'))) {
+            $this->addFlash('error', 'Session invalide, veuillez réessayer.');
+            return $this->redirectToRoute('app_password_reset_email_code_request');
+        }
+
+        $userId = $request->getSession()->get('password_reset_candidate_user_id');
+        $user = $userId ? $em->find(User::class, $userId) : null;
+
+        if (!$user) {
+            $this->addFlash('error', 'Session expirée, veuillez recommencer.');
+            return $this->redirectToRoute('app_forgot_password');
+        }
+
+        $emailSaisi = trim((string) $request->request->get('email'));
+
+        if ($emailSaisi === '' || mb_strtolower($emailSaisi) !== mb_strtolower($user->getEmail())) {
+            $this->addFlash('error', "L'adresse email saisie ne correspond pas à celle de votre compte.");
+            return $this->redirectToRoute('app_password_reset_email_code_request');
+        }
+
+        // Invalide les anciens codes non utilisés avant d'en créer un nouveau.
+        $codeRepository->invalidateAllForUser($user);
+
+        $rawCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $resetCode = new PasswordResetEmailCode();
+        $resetCode->setUser($user);
+        $resetCode->setCodeHash(hash('sha256', $rawCode));
+        $resetCode->setRequestedAt(new \DateTimeImmutable());
+        $resetCode->setExpiresAt((new \DateTimeImmutable())->modify('+15 minutes'));
+        $resetCode->setUsed(false);
+        $resetCode->setAttempts(0);
+
+        $em->persist($resetCode);
+        $em->flush();
+
+        $email = (new TemplatedEmail())
+            ->from('no-reply@matchcv.com')
+            ->to($user->getEmail())
+            ->subject('Votre code de réinitialisation MatchCV')
+            ->htmlTemplate('emails/password_reset_code.html.twig')
+            ->context([
+                'code' => $rawCode,
+                'user' => $user,
+            ]);
+
+        $mailer->send($email);
+
+        $this->addFlash('success', 'Un code de vérification a été envoyé à ' . $this->maskEmail($user->getEmail()) . '. Il est valable 15 minutes.');
+
+        return $this->redirectToRoute('app_password_reset_email_code_verify');
+    }
+
+    /**
+     * Étape C3 : vérification du code à 6 chiffres saisi par le candidat.
+     */
+    #[Route('/mot-de-passe-oublie/code-email/verifier', name: 'app_password_reset_email_code_verify', methods: ['GET', 'POST'])]
+    public function verifyEmailCode(
+        Request $request,
+        EntityManagerInterface $em,
+        PasswordResetEmailCodeRepository $codeRepository
+    ): Response {
+        $userId = $request->getSession()->get('password_reset_candidate_user_id');
+        $user = $userId ? $em->find(User::class, $userId) : null;
+
+        if (!$user) {
+            $this->addFlash('error', 'Session expirée, veuillez recommencer.');
+            return $this->redirectToRoute('app_forgot_password');
+        }
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('password_reset_email_code_verify', (string) $request->request->get('_csrf_token'))) {
+                $this->addFlash('error', 'Session invalide, veuillez réessayer.');
+                return $this->redirectToRoute('app_password_reset_email_code_verify');
+            }
+
+            $code = trim((string) $request->request->get('code'));
+            $resetCode = $codeRepository->findLatestValidForUser($user);
+
+            if (!$resetCode || !$resetCode->isValid()) {
+                $this->addFlash('error', 'Aucun code valide trouvé. Merci de redemander un nouveau code.');
+                return $this->redirectToRoute('app_password_reset_email_code_request');
+            }
+
+            if (!preg_match('/^\d{6}$/', $code) || hash('sha256', $code) !== $resetCode->getCodeHash()) {
+                $resetCode->incrementAttempts();
+                $em->flush();
+                $this->addFlash('error', 'Code incorrect. Vérifiez votre email et réessayez.');
+                return $this->redirectToRoute('app_password_reset_email_code_verify');
+            }
+
+            $resetCode->setUsed(true);
+            $em->flush();
+
+            $request->getSession()->set('password_reset_email_code_verified_user_id', $user->getId());
+            $request->getSession()->remove('password_reset_candidate_user_id');
+
+            return $this->redirectToRoute('app_password_reset_email_code_new_password');
+        }
+
+        return $this->render('password_reset_email_code_verify.html.twig');
+    }
+
+    /**
+     * Étape C4 : définition du nouveau mot de passe après validation du code.
+     */
+    #[Route('/mot-de-passe-oublie/code-email/nouveau-mot-de-passe', name: 'app_password_reset_email_code_new_password', methods: ['GET', 'POST'])]
+    public function newPasswordViaEmailCode(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $passwordHasher
+    ): Response {
+        $userId = $request->getSession()->get('password_reset_email_code_verified_user_id');
+        $user = $userId ? $em->find(User::class, $userId) : null;
+
+        if (!$user) {
+            $this->addFlash('error', 'Session expirée, veuillez recommencer.');
+            return $this->redirectToRoute('app_forgot_password');
+        }
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('password_reset_email_code_new_password', (string) $request->request->get('_csrf_token'))) {
+                $this->addFlash('error', 'Session invalide, veuillez réessayer.');
+                return $this->redirectToRoute('app_password_reset_email_code_new_password');
+            }
+
+            $passwords = $request->request->all('password');
+            $first  = (string) ($passwords['first'] ?? '');
+            $second = (string) ($passwords['second'] ?? '');
+
+            if (strlen($first) < 8) {
+                $this->addFlash('error', 'Le mot de passe doit contenir au moins 8 caractères.');
+                return $this->redirectToRoute('app_password_reset_email_code_new_password');
+            }
+
+            if ($first !== $second) {
+                $this->addFlash('error', 'Les deux mots de passe ne correspondent pas.');
+                return $this->redirectToRoute('app_password_reset_email_code_new_password');
+            }
+
+            $user->setPassword($passwordHasher->hashPassword($user, $first));
+            $em->flush();
+
+            $request->getSession()->remove('password_reset_email_code_verified_user_id');
+
+            $this->addFlash('success', 'Mot de passe modifié avec succès. Vous pouvez vous connecter.');
+            return $this->redirectToRoute('app_login');
+        }
+
+        return $this->render('password_reset_email_code_new_password.html.twig');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
