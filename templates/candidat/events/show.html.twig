@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ evenement.titre }}{% endblock %}
+
+{% block stylesheets %}
+{{ include('entreprise/events/_form_styles.html.twig') }}
+<style>
+.detail-hero{ display:grid; grid-template-columns: 420px 1fr; gap:20px; align-items:start; }
+.detail-media{ border-radius:12px; overflow:hidden; height:360px; background:#f3f4f6 }
+.detail-media img{ width:100%; height:100%; object-fit:cover }
+.detail-card{ background:var(--surface); border:1px solid var(--border); padding:18px; border-radius:12px }
+.apply-panel{ border-radius:12px; border:1px solid var(--border); padding:16px; background:var(--surface); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div>
+        <a href="{{ path('app_candidat_events') }}">← Retour aux événements</a>
+        <h1 style="margin-top:6px">{{ evenement.titre }}</h1>
+    </div>
+    <div style="color:var(--text-secondary)">🗓️ {{ evenement.debutAt ? evenement.debutAt.format('d M Y H:i') : '—' }} — {{ evenement.finAt ? evenement.finAt.format('d M Y H:i') : '—' }}</div>
+</div>
+
+<div class="detail-hero">
+    <div class="detail-media">
+        {% if evenement.photo %}
+            <img src="/uploads/evenements/{{ evenement.photo }}" alt="{{ evenement.titre }}">
+        {% endif %}
+    </div>
+
+    <div>
+        <div class="detail-card">
+            <div style="display:flex;gap:14px;align-items:center;justify-content:space-between;">
+                <div>
+                    <div style="font-weight:800;font-size:1.1rem">{{ evenement.titre }}</div>
+                    <div style="color:var(--text-secondary);margin-top:6px">{{ evenement.lieu ?: 'En ligne / Présentiel' }}</div>
+                </div>
+                <div style="text-align:right;color:var(--text-secondary)">{{ evenement.capacite ? evenement.capacite ~ ' places' : 'Illimité' }}</div>
+            </div>
+
+            <hr style="margin:12px 0;border-color:var(--border)">
+            <div style="color:var(--text-secondary);line-height:1.6">{{ evenement.description|nl2br }}</div>
+        </div>
+
+        <div style="margin-top:12px;" class="apply-panel">
+            <h3 style="margin-top:0">Postuler à cet événement</h3>
+            {% if is_granted('ROLE_CANDIDAT') %}
+                    {% if existingApplication %}
+                        <div style="color:var(--text-secondary);margin-bottom:8px;">✅ Vous êtes inscrit à cet événement.</div>
+                        <form method="post" action="{{ path('app_candidat_events_unregister', {id: evenement.id}) }}" onsubmit="return confirm('Voulez-vous vraiment vous désinscrire de cet événement ?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('evenement_unregister_' ~ evenement.id) }}">
+                            <button class="btn btn-danger">Se désinscrire</button>
+                            <a class="btn btn-secondary" href="{{ path('app_candidat_events') }}">Retour aux événements</a>
+                        </form>
+                    {% else %}
+                        {{ form_start(form) }}
+                        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+                            <button class="btn btn-primary">Postuler</button>
+                            <a class="btn btn-secondary" href="{{ path('app_candidat_events') }}">Annuler</a>
+                        </div>
+                        {{ form_end(form) }}
+                    {% endif %}
+            {% else %}
+                <p>Veuillez vous <a href="{{ path('app_login') }}">connecter</a> en tant que candidat pour postuler.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Confirmation modal shown when redirected with ?confirmed=1 #}
+    {% if app.request.query.get('confirmed') == '1' %}
+        <div id="confirm-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;">
+            <div style="background:#fff;padding:22px;border-radius:10px;max-width:560px;text-align:center;">
+                <h3 style="margin-top:0">Candidature enregistrée</h3>
+                <p style="color:var(--text-secondary)">Votre inscription à « {{ evenement.titre }} » a bien été enregistrée.</p>
+                <a class="btn btn-primary" href="{{ path('app_candidat_events') }}" style="margin-top:12px;">Retour aux événements</a>
+            </div>
+        </div>
+        <script>
+            // auto-redirect after 2.5s as fallback
+            setTimeout(function(){ window.location.href = '{{ path('app_candidat_events') }}'; }, 2500);
+        </script>
+    {% endif %}
+</div>
+
+{% endblock %}

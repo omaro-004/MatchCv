@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Événements{% endblock %}
+
+{% block stylesheets %}
+{{ include('entreprise/events/_form_styles.html.twig') }}
+<style>
+/* Minimal attractive grid for candidates */
+.cand-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+.cand-card { background: var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; }
+.cand-media { height:160px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; }
+.cand-media img { width:100%; height:160px; object-fit:cover; }
+.cand-body { padding:14px; flex:1; display:flex; flex-direction:column; }
+.cand-title { font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+.cand-meta { color:var(--text-secondary); font-size:.9rem; margin-bottom:8px; }
+.cand-cta { margin-top:auto; display:flex; gap:8px; align-items:center; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div>
+        <h1 style="margin:0">Événements pour les candidats</h1>
+        <p style="margin:4px 0 0;color:var(--text-secondary)">Découvrez et postulez aux événements organisés par les recruteurs.</p>
+    </div>
+    <div>
+        <a class="btn btn-primary" href="{{ path('app_candidat_events') }}">Actualiser</a>
+    </div>
+</div>
+
+<div class="cand-grid">
+    {% for e in events %}
+        <article class="cand-card">
+            <div class="cand-media">
+                {% if e.photo %}
+                    <img src="/uploads/evenements/{{ e.photo }}" alt="{{ e.titre }}">
+                {% else %}
+                    <div style="color:#9ca3af">Aucune photo</div>
+                {% endif %}
+            </div>
+            <div class="cand-body">
+                <div class="cand-title">{{ e.titre }}</div>
+                <div class="cand-meta">🗓️ {{ e.debutAt ? e.debutAt.format('d M Y H:i') : '—' }} · {{ e.lieu ?: 'En ligne / Présentiel' }}</div>
+                <div class="cand-desc" style="color:var(--text-secondary);">{{ e.description|slice(0,160) }}{% if e.description|length > 160 %}…{% endif %}</div>
+                <div class="cand-cta">
+                    <a class="btn btn-secondary" href="{{ path('app_candidat_events_show', {id: e.id}) }}">Détails & Postuler</a>
+                    <div style="margin-left:auto;color:var(--text-secondary)">{{ e.capacite ? e.capacite ~ ' places' : 'Illimité' }}</div>
+                </div>
+            </div>
+        </article>
+    {% else %}
+        <div class="evt-empty">
+            <div class="icon">🎪</div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">Aucun événement pour le moment</div>
+            <p>Vérifiez plus tard — les recruteurs n'ont pas encore publié d'événement.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{% if appliedEvents is defined and appliedEvents|length > 0 %}
+    <div style="margin-top:28px;">
+        <h2>Événements auxquels vous avez postulé</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:10px;">
+            {% for ae in appliedEvents %}
+                <div style="border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:10px;">
+                    <div style="font-weight:700">{{ ae.titre }}</div>
+                    <div style="color:var(--text-secondary);font-size:.9rem;margin-top:6px;">{{ ae.debutAt ? ae.debutAt.format('d M Y') : '—' }} · {{ ae.lieu ?: 'En ligne' }}</div>
+                    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;"> 
+                        <a class="btn btn-secondary btn-sm" href="{{ path('app_candidat_events_show', {id: ae.id}) }}">Voir</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
