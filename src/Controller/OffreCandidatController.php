@@ -14,6 +14,7 @@ use App\Repository\CandidatureRepository;
 use App\Repository\OffreRepository;
 use App\Service\MatchingPreviewService;
 use App\Service\MatchingService;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -31,6 +32,10 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  * dépôt d'un avis sur l'entreprise.
  *
  * Toutes les routes sont sous /candidat, déjà couvertes par security.yaml.
+ *
+ * NOUVEAU : le dépôt d'une candidature notifie l'entreprise propriétaire de
+ * l'offre, et le dépôt/modification d'un avis notifie l'entreprise évaluée,
+ * via NotificationService.
  */
 #[IsGranted('ROLE_CANDIDAT')]
 class OffreCandidatController extends AbstractController
@@ -93,6 +98,7 @@ class OffreCandidatController extends AbstractController
         CandidatureRepository $candidatureRepository,
         MatchingService $matchingService,
         MatchingPreviewService $matchingPreviewService,
+        NotificationService $notificationService,
         SluggerInterface $slugger
     ): Response {
         $profil = $this->getProfilCandidatOrThrow();
@@ -142,15 +148,11 @@ class OffreCandidatController extends AbstractController
 
             // RM-C03 : calcul du score IA de façon synchrone au dépôt de la candidature.
             //
-            // NOUVEAU : si le candidat a déjà vu cette offre dans ses
-            // recommandations, un score IA "preview" a déjà été calculé et mis
-            // en cache (MatchingPreviewService). On le réutilise TEL QUEL au
-            // lieu d'en recalculer un nouveau, pour garantir que le score
-            // affiché en recommandation est identique au score final de la
-            // candidature. Un CV spécifique à la candidature (uploadé dans le
-            // formulaire ci-dessus) invalide toujours ce raisonnement — dans
-            // ce cas précis on recalcule pour respecter RM-M04 (le score doit
-            // se baser sur le CV réellement joint à la candidature).
+            // Si le candidat a déjà vu cette offre dans ses recommandations, un
+            // score IA "preview" a déjà été calculé et mis en cache
+            // (MatchingPreviewService). On le réutilise TEL QUEL au lieu d'en
+            // recalculer un nouveau, pour garantir que le score affiché en
+            // recommandation est identique au score final de la candidature.
             $preview = ($cvFile instanceof UploadedFile)
                 ? null
                 : $matchingPreviewService->findValidPreview($profil, $offre);
@@ -170,6 +172,9 @@ class OffreCandidatController extends AbstractController
             $candidature->setCompetencesManquantesArray($result['competences_manquantes']);
             $em->flush();
 
+            // NOUVEAU — notification de l'entreprise propriétaire de l'offre.
+            $notificationService->notifierNouvelleCandidature($candidature);
+
             $this->addFlash('success', 'Votre candidature a été envoyée avec succès !');
             return $this->redirectToRoute('app_candidat_candidatures_liste');
         }
@@ -181,8 +186,13 @@ class OffreCandidatController extends AbstractController
     }
 
     #[Route('/candidat/entreprises/{id}/avis', name: 'app_candidat_entreprise_avis', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function laisserAvis(int $id, Request $request, EntityManagerInterface $em, AvisEntrepriseRepository $avisRepository): Response
-    {
+    public function laisserAvis(
+        int $id,
+        Request $request,
+        EntityManagerInterface $em,
+        AvisEntrepriseRepository $avisRepository,
+        NotificationService $notificationService
+    ): Response {
         $profil = $this->getProfilCandidatOrThrow();
 
         $entreprise = $em->getRepository(ProfilEntreprise::class)->find($id);
@@ -204,6 +214,7 @@ class OffreCandidatController extends AbstractController
         }
 
         $avis = $avisRepository->findOneByEntrepriseAndCandidat($entreprise, $profil);
+        $isNouveau = $avis === null;
         if (!$avis) {
             $avis = new AvisEntreprise();
             $avis->setEntreprise($entreprise);
@@ -215,6 +226,9 @@ class OffreCandidatController extends AbstractController
 
         $em->persist($avis);
         $em->flush();
+
+        // NOUVEAU — notification de l'entreprise évaluée.
+        $notificationService->notifierNouvelAvis($avis, $isNouveau);
 
         $this->addFlash('success', 'Merci pour votre avis !');
         return $this->redirectBack($request);

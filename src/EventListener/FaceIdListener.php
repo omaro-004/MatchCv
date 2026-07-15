@@ -17,6 +17,19 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  * ayant activé le Face ID ont bien passé la vérification faciale
  * avant d'accéder à leurs routes protégées.
  *
+ * ── CORRECTIF IMPORTANT ─────────────────────────────────────────────
+ * Dans Symfony, plus la priorité d'un listener kernel.request est ÉLEVÉE,
+ * plus il s'exécute TÔT. Le firewall Symfony (y compris en mode lazy)
+ * s'exécute à la priorité 8. Ce listener DOIT donc utiliser une priorité
+ * INFÉRIEURE à 8 pour s'exécuter APRÈS que le firewall ait résolu/chargé
+ * l'utilisateur courant.
+ *
+ * L'ancienne version utilisait la priorité 10 (donc AVANT le firewall) :
+ * $tokenStorage->getToken() retournait alors systématiquement null, ce
+ * qui provoquait un `return;` immédiat et désactivait silencieusement
+ * tout le contrôle Face ID — d'où le contournement observé (le candidat
+ * accédait au dashboard et pouvait naviguer sans jamais être vérifié).
+ *
  * Logique :
  *   - Si l'utilisateur est un candidat avec Face ID activé
  *   - ET que la session ne contient pas 'face_id_verified' = true
@@ -61,9 +74,10 @@ class FaceIdListener implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            // Priorité 10 pour s'exécuter après le pare-feu Symfony (priorité 8)
-            // mais avant les contrôleurs (priorité 0)
-            KernelEvents::REQUEST => ['onKernelRequest', 10],
+            // CORRECTIF : priorité 7 (< 8) pour s'exécuter APRÈS le firewall
+            // Symfony (qui résout l'utilisateur à la priorité 8), mais
+            // toujours AVANT les contrôleurs.
+            KernelEvents::REQUEST => ['onKernelRequest', 7],
         ];
     }
 
