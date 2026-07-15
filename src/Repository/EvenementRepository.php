@@ -66,4 +66,15 @@ class EvenementRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return Evenement[] */
+    public function findAllActive(): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.isAnnule = false')
+            ->andWhere('e.isArchive = false')
+            ->orderBy('e.debutAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
