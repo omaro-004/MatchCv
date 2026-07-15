@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Candidatures{% endblock %}
+{% block page_title %}Toutes les candidatures{% endblock %}
+{% block page_subtitle %}{{ candidatures|length }} candidature{{ candidatures|length > 1 ? 's' : '' }}{% endblock %}
+
+{% block body %}
+
+<form method="get" class="search-bar">
+    <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Rechercher par candidat ou offre...">
+    </div>
+    <select name="statut" class="filter-select" onchange="this.form.submit()">
+        <option value="">Tous les statuts</option>
+        <option value="en_attente" {{ filters.statut == 'en_attente' ? 'selected' : '' }}>En attente</option>
+        <option value="accepte" {{ filters.statut == 'accepte' ? 'selected' : '' }}>Accepté</option>
+        <option value="refuse" {{ filters.statut == 'refuse' ? 'selected' : '' }}>Refusé</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+</form>
+
+{% if candidatures|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">Aucune candidature trouvée.</div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead><tr><th>Candidat</th><th>Offre</th><th>Score IA</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for c in candidatures %}
+                <tr>
+                    <td style="font-weight:600;">{{ c.candidat.nomComplet }}</td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ c.offre.titre }}</td>
+                    <td>
+                        {% if c.scoreMatching is not null %}
+                            <span class="match-score {{ c.scoreMatching >= 80 ? 'high' : (c.scoreMatching >= 60 ? 'mid' : 'low') }}">{{ c.scoreMatching|round }}%</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if c.statut == 'accepte' %}<span class="badge badge-success">{{ c.statutLabel }}</span>
+                        {% elseif c.statut == 'refuse' %}<span class="badge badge-danger">{{ c.statutLabel }}</span>
+                        {% else %}<span class="badge badge-warning">{{ c.statutLabel }}</span>{% endif %}
+                    </td>
+                    <td style="font-size:.82rem;color:var(--text-secondary);">{{ c.dateCandidature|date('d/m/Y') }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-supprimer-candidature" style="background:rgba(239,68,68,.12);color:#dc2626;" data-id="{{ c.id }}">
+                            Supprimer
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<div id="delete-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:440px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:18px;">Supprimer cette candidature</div>
+        <div class="form-group">
+            <label>Motif de suppression</label>
+            <textarea id="delete-motif" class="form-control" rows="3"></textarea>
+        </div>
+        <div id="delete-error" style="display:none;color:var(--danger);font-size:.8rem;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:10px;">
+            <button type="button" id="delete-cancel" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="delete-confirm" class="btn btn-danger" style="flex:1;justify-content:center;">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const backdrop = document.getElementById('delete-modal-backdrop');
+    const motifInput = document.getElementById('delete-motif');
+    const errorDiv = document.getElementById('delete-error');
+    const CSRF_TOKEN = '{{ csrf_token("admin_candidature_supprimer") }}';
+    let currentId = null;
+
+    document.querySelectorAll('.btn-supprimer-candidature').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentId = btn.dataset.id;
+            motifInput.value = '';
+            errorDiv.style.display = 'none';
+            backdrop.style.display = 'flex';
+        });
+    });
+
+    document.getElementById('delete-cancel').addEventListener('click', function () { backdrop.style.display = 'none'; });
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.style.display = 'none'; });
+
+    document.getElementById('delete-confirm').addEventListener('click', function () {
+        const motif = motifInput.value.trim();
+        if (motif === '') {
+            errorDiv.textContent = 'Le motif est obligatoire.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/candidatures/' + currentId + '/supprimer';
+        form.innerHTML = '<input type="hidden" name="_csrf_token" value="' + CSRF_TOKEN + '">'
+            + '<input type="hidden" name="motif" value="' + motif.replace(/"/g, '&quot;') + '">';
+        document.body.appendChild(form);
+        form.submit();
+    });
+})();
+</script>
+
+{% endblock %}

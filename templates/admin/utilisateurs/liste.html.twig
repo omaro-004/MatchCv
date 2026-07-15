@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Utilisateurs{% endblock %}
+{% block page_title %}Gestion des utilisateurs{% endblock %}
+{% block page_subtitle %}{{ utilisateurs|length }} compte{{ utilisateurs|length > 1 ? 's' : '' }}{% endblock %}
+
+{% block body %}
+
+<form method="get" class="search-bar">
+    <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Rechercher par email, nom ou raison sociale...">
+    </div>
+    <select name="role" class="filter-select" onchange="this.form.submit()">
+        <option value="">Tous les rôles</option>
+        <option value="candidat" {{ filters.role == 'candidat' ? 'selected' : '' }}>Candidats</option>
+        <option value="entreprise" {{ filters.role == 'entreprise' ? 'selected' : '' }}>Entreprises</option>
+        <option value="admin" {{ filters.role == 'admin' ? 'selected' : '' }}>Admins</option>
+    </select>
+    <select name="statut" class="filter-select" onchange="this.form.submit()">
+        <option value="">Tous les statuts</option>
+        <option value="actif" {{ filters.statut == 'actif' ? 'selected' : '' }}>Actifs</option>
+        <option value="suspendu" {{ filters.statut == 'suspendu' ? 'selected' : '' }}>Suspendus</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+</form>
+
+{% if utilisateurs|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:12px;">👤</div>
+        <div style="font-weight:700;font-size:1rem;">Aucun utilisateur ne correspond à ces critères.</div>
+    </div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr><th>Nom / Raison sociale</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Inscrit le</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for u in utilisateurs %}
+                <tr>
+                    <td style="font-weight:600;">
+                        {% if u.role == 'candidat' and u.profilCandidat %}
+                            {{ u.profilCandidat.nomComplet }}
+                        {% elseif u.role == 'entreprise' and u.profilEntreprise %}
+                            {{ u.profilEntreprise.raisonSociale }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-secondary);font-size:.85rem;">{{ u.email }}</td>
+                    <td>
+                        {% if u.role == 'candidat' %}<span class="badge badge-accent">Candidat</span>
+                        {% elseif u.role == 'entreprise' %}<span class="badge badge-warning">Entreprise</span>
+                        {% else %}<span class="badge badge-neutral">Admin</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if u.isSuspendu %}
+                            <span class="badge badge-danger" title="{{ u.motifSuspension }}">Suspendu</span>
+                        {% else %}
+                            <span class="badge badge-success">Actif</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:.82rem;color:var(--text-secondary);">{{ u.dateInscri ? u.dateInscri|date('d/m/Y') : '—' }}</td>
+                    <td>
+                        {% if u.role != 'admin' %}
+                            {% if u.isSuspendu %}
+                                <form method="post" action="{{ path('app_admin_utilisateur_reactiver', {id: u.id}) }}" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_user_reactiver') }}">
+                                    <button type="submit" class="btn btn-sm" style="background:rgba(34,197,94,.12);color:#16a34a;">Réactiver</button>
+                                </form>
+                            {% else %}
+                                <button type="button" class="btn btn-sm btn-suspendre" style="background:rgba(239,68,68,.12);color:#dc2626;" data-id="{{ u.id }}" data-nom="{{ (u.role == 'candidat' and u.profilCandidat) ? u.profilCandidat.nomComplet|e('html_attr') : ((u.role == 'entreprise' and u.profilEntreprise) ? u.profilEntreprise.raisonSociale|e('html_attr') : u.email|e('html_attr')) }}">
+                                    Suspendre
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <span style="font-size:.78rem;color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+{# ── MODALE DE SUSPENSION ── #}
+<div id="suspend-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:440px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Suspendre ce compte</div>
+        <div id="suspend-modal-nom" style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;"></div>
+
+        <div class="form-group">
+            <label>Motif de la suspension (violation, fraude...)</label>
+            <textarea id="suspend-motif" class="form-control" rows="3" placeholder="Expliquez la raison de la suspension..."></textarea>
+        </div>
+
+        <div id="suspend-error" style="display:none;color:var(--danger);font-size:.8rem;margin-bottom:12px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="suspend-cancel" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="suspend-confirm" class="btn btn-danger" style="flex:1;justify-content:center;">Confirmer la suspension</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const backdrop = document.getElementById('suspend-modal-backdrop');
+    const modalNom = document.getElementById('suspend-modal-nom');
+    const motifInput = document.getElementById('suspend-motif');
+    const errorDiv = document.getElementById('suspend-error');
+    const btnCancel = document.getElementById('suspend-cancel');
+    const btnConfirm = document.getElementById('suspend-confirm');
+    const CSRF_TOKEN = '{{ csrf_token("admin_user_suspendre") }}';
+    let currentUserId = null;
+
+    document.querySelectorAll('.btn-suspendre').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentUserId = btn.dataset.id;
+            modalNom.textContent = 'Compte : ' + btn.dataset.nom;
+            motifInput.value = '';
+            errorDiv.style.display = 'none';
+            backdrop.style.display = 'flex';
+        });
+    });
+
+    btnCancel.addEventListener('click', function () { backdrop.style.display = 'none'; });
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.style.display = 'none'; });
+
+    btnConfirm.addEventListener('click', async function () {
+        const motif = motifInput.value.trim();
+        if (motif === '') {
+            errorDiv.textContent = 'Le motif est obligatoire.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/utilisateurs/' + currentUserId + '/suspendre';
+
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden'; tokenInput.name = '_csrf_token'; tokenInput.value = CSRF_TOKEN;
+        form.appendChild(tokenInput);
+
+        const motifInputHidden = document.createElement('input');
+        motifInputHidden.type = 'hidden'; motifInputHidden.name = 'motif'; motifInputHidden.value = motif;
+        form.appendChild(motifInputHidden);
+
+        document.body.appendChild(form);
+        form.submit();
+    });
+})();
+</script>
+
+{% endblock %}

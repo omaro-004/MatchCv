@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modération des offres{% endblock %}
+{% block page_title %}Toutes les offres{% endblock %}
+{% block page_subtitle %}{{ offres|length }} offre{{ offres|length > 1 ? 's' : '' }} · Modération globale{% endblock %}
+
+{% block body %}
+
+<form method="get" class="search-bar">
+    <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" value="{{ filters.q }}" placeholder="Rechercher par titre ou entreprise...">
+    </div>
+    <select name="statut" class="filter-select" onchange="this.form.submit()">
+        <option value="">Tous les statuts</option>
+        <option value="active" {{ filters.statut == 'active' ? 'selected' : '' }}>Actives</option>
+        <option value="archivee" {{ filters.statut == 'archivee' ? 'selected' : '' }}>Archivées</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+</form>
+
+{% if offres|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">Aucune offre trouvée.</div>
+{% else %}
+    <div class="card">
+        <table class="data-table">
+            <thead>
+                <tr><th>Offre</th><th>Entreprise</th><th>Salaire</th><th>Statut</th><th>Publiée le</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for offre in offres %}
+                <tr>
+                    <td style="font-weight:600;">{{ offre.titre }}<div style="font-size:.74rem;color:var(--text-muted);">{{ offre.localisation }} · {{ offre.typeContratLabel }}</div></td>
+                    <td>{{ offre.entreprise ? offre.entreprise.raisonSociale : '—' }}</td>
+                    <td>{{ offre.salaire ? offre.salaire|number_format(0, ',', ' ') ~ ' €' : '—' }}</td>
+                    <td>
+                        {% if offre.isActive %}<span class="badge badge-success">Active</span>
+                        {% else %}<span class="badge badge-neutral">Archivée</span>{% endif %}
+                    </td>
+                    <td style="font-size:.82rem;color:var(--text-secondary);">{{ offre.datePublication|date('d/m/Y') }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-supprimer-offre" style="background:rgba(239,68,68,.12);color:#dc2626;" data-id="{{ offre.id }}" data-titre="{{ offre.titre|e('html_attr') }}">
+                            Supprimer
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<div id="delete-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:440px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Supprimer cette offre</div>
+        <div id="delete-modal-titre" style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;"></div>
+        <div style="font-size:.78rem;color:var(--danger);margin-bottom:12px;">⚠️ Toutes les candidatures liées seront supprimées définitivement.</div>
+
+        <div class="form-group">
+            <label>Motif de suppression (fraude, offre abusive, violation salariale...)</label>
+            <textarea id="delete-motif" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div id="delete-error" style="display:none;color:var(--danger);font-size:.8rem;margin-bottom:12px;"></div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="delete-cancel" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="delete-confirm" class="btn btn-danger" style="flex:1;justify-content:center;">Confirmer la suppression</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const backdrop = document.getElementById('delete-modal-backdrop');
+    const modalTitre = document.getElementById('delete-modal-titre');
+    const motifInput = document.getElementById('delete-motif');
+    const errorDiv = document.getElementById('delete-error');
+    const btnCancel = document.getElementById('delete-cancel');
+    const btnConfirm = document.getElementById('delete-confirm');
+    const CSRF_TOKEN = '{{ csrf_token("admin_offre_supprimer") }}';
+    let currentId = null;
+
+    document.querySelectorAll('.btn-supprimer-offre').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentId = btn.dataset.id;
+            modalTitre.textContent = 'Offre : « ' + btn.dataset.titre + ' »';
+            motifInput.value = '';
+            errorDiv.style.display = 'none';
+            backdrop.style.display = 'flex';
+        });
+    });
+
+    btnCancel.addEventListener('click', function () { backdrop.style.display = 'none'; });
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.style.display = 'none'; });
+
+    btnConfirm.addEventListener('click', function () {
+        const motif = motifInput.value.trim();
+        if (motif === '') {
+            errorDiv.textContent = 'Le motif est obligatoire.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/offres/' + currentId + '/supprimer';
+        form.innerHTML = '<input type="hidden" name="_csrf_token" value="' + CSRF_TOKEN + '">'
+            + '<input type="hidden" name="motif" value="' + motif.replace(/"/g, '&quot;') + '">';
+        document.body.appendChild(form);
+        form.submit();
+    });
+})();
+</script>
+
+{% endblock %}

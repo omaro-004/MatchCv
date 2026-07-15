@@ -18,6 +18,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 )]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const STATUT_ACTIF = 'actif';
+    public const STATUT_SUSPENDU = 'suspendu';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(name: 'id_user', type: 'integer')]
@@ -60,19 +63,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'oauth_id', type: 'string', length: 255, nullable: true)]
     private ?string $oauthId = null;
 
-    /**
-     * Secret TOTP (base32), généré lors de l'activation de l'application
-     * d'authentification. Permet de récupérer le mot de passe sans email.
-     */
     #[ORM\Column(name: 'totp_secret', type: 'string', length: 255, nullable: true)]
     private ?string $totpSecret = null;
 
-    /**
-     * true si l'utilisateur a confirmé au moins une fois un code valide
-     * après avoir scanné le QR code (donc l'application est bien configurée).
-     */
     #[ORM\Column(name: 'totp_enabled', type: 'boolean', options: ['default' => false])]
     private bool $totpEnabled = false;
+
+    // ── NOUVEAU — Modération / suspension de compte (superpouvoir Admin) ──
+    #[ORM\Column(
+        name: 'compte_statut',
+        type: 'string',
+        length: 20,
+        columnDefinition: "ENUM('actif', 'suspendu') NOT NULL DEFAULT 'actif'"
+    )]
+    private string $compteStatut = self::STATUT_ACTIF;
+
+    #[ORM\Column(name: 'motif_suspension', type: 'text', nullable: true)]
+    private ?string $motifSuspension = null;
+
+    #[ORM\Column(name: 'date_suspension', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $dateSuspension = null;
+
+    /**
+     * Email de l'admin ayant prononcé la suspension — traçabilité (pas de FK
+     * pour rester simple et robuste même si le compte admin est supprimé).
+     */
+    #[ORM\Column(name: 'suspendu_par', type: 'string', length: 255, nullable: true)]
+    private ?string $suspenduPar = null;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: ProfilCandidat::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?ProfilCandidat $profilCandidat = null;
@@ -320,6 +337,57 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setTotpEnabled(bool $totpEnabled): static
     {
         $this->totpEnabled = $totpEnabled;
+        return $this;
+    }
+
+    // ---------------------------------------------------------------
+    // NOUVEAU — Suspension / modération de compte (pouvoir Admin)
+    // ---------------------------------------------------------------
+
+    public function getCompteStatut(): string
+    {
+        return $this->compteStatut;
+    }
+
+    public function isSuspendu(): bool
+    {
+        return $this->compteStatut === self::STATUT_SUSPENDU;
+    }
+
+    public function getMotifSuspension(): ?string
+    {
+        return $this->motifSuspension;
+    }
+
+    public function getDateSuspension(): ?\DateTimeImmutable
+    {
+        return $this->dateSuspension;
+    }
+
+    public function getSuspenduPar(): ?string
+    {
+        return $this->suspenduPar;
+    }
+
+    /**
+     * Suspend le compte. Ne doit jamais être appelé sur un compte admin
+     * (vérification faite au niveau du contrôleur — RM-R04 étendue).
+     */
+    public function suspendre(string $motif, string $adminEmail): static
+    {
+        $this->compteStatut = self::STATUT_SUSPENDU;
+        $this->motifSuspension = $motif;
+        $this->dateSuspension = new \DateTimeImmutable();
+        $this->suspenduPar = $adminEmail;
+        return $this;
+    }
+
+    public function reactiver(): static
+    {
+        $this->compteStatut = self::STATUT_ACTIF;
+        $this->motifSuspension = null;
+        $this->dateSuspension = null;
+        $this->suspenduPar = null;
         return $this;
     }
 }

@@ -5,21 +5,6 @@ namespace App\Entity;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * Notification
- *
- * Notification adressée à un User (candidat ou entreprise), déclenchée par
- * App\Service\NotificationService lors d'événements métier :
- *   - Entreprise : nouvelle candidature reçue, nouvel avis déposé.
- *   - Candidat   : changement de statut de candidature, nouvelle offre
- *                  correspondant à son type de contrat.
- *
- * Choix d'architecture : pas de relation FK directe vers Offre/Candidature/
- * AvisEntreprise. Le champ `lien` stocke l'URL déjà résolue au moment de la
- * création (via UrlGeneratorInterface dans NotificationService). Ainsi, la
- * notification reste lisible et exploitable même si la ressource d'origine
- * est supprimée par la suite (règle RM-N04 : conservation des notifications).
- */
 #[ORM\Entity(repositoryClass: NotificationRepository::class)]
 #[ORM\Table(name: 'notification')]
 #[ORM\HasLifecycleCallbacks]
@@ -30,6 +15,10 @@ class Notification
     public const TYPE_NOUVEL_AVIS = 'nouvel_avis';
     public const TYPE_NOUVELLE_OFFRE = 'nouvelle_offre';
     public const TYPE_SYSTEME = 'systeme';
+    // NOUVEAU — notifications déclenchées par les actions de modération Admin
+    public const TYPE_COMPTE_SUSPENDU = 'compte_suspendu';
+    public const TYPE_OFFRE_SUPPRIMEE_ADMIN = 'offre_supprimee_admin';
+    public const TYPE_CANDIDATURE_SUPPRIMEE_ADMIN = 'candidature_supprimee_admin';
 
     public const TYPES = [
         self::TYPE_CANDIDATURE_RECUE,
@@ -37,6 +26,9 @@ class Notification
         self::TYPE_NOUVEL_AVIS,
         self::TYPE_NOUVELLE_OFFRE,
         self::TYPE_SYSTEME,
+        self::TYPE_COMPTE_SUSPENDU,
+        self::TYPE_OFFRE_SUPPRIMEE_ADMIN,
+        self::TYPE_CANDIDATURE_SUPPRIMEE_ADMIN,
     ];
 
     #[ORM\Id]
@@ -52,7 +44,7 @@ class Notification
         name: 'type',
         type: 'string',
         length: 30,
-        columnDefinition: "ENUM('candidature_recue','statut_candidature','nouvel_avis','nouvelle_offre','systeme') NOT NULL"
+        columnDefinition: "ENUM('candidature_recue','statut_candidature','nouvel_avis','nouvelle_offre','systeme','compte_suspendu','offre_supprimee_admin','candidature_supprimee_admin') NOT NULL"
     )]
     private string $type = self::TYPE_SYSTEME;
 
@@ -62,10 +54,6 @@ class Notification
     #[ORM\Column(name: 'message', type: 'text')]
     private string $message = '';
 
-    /**
-     * URL relative précalculée vers la ressource concernée (ex: liste des
-     * candidatures, profil entreprise, détail d'une offre).
-     */
     #[ORM\Column(name: 'lien', type: 'string', length: 500, nullable: true)]
     private ?string $lien = null;
 
@@ -168,9 +156,6 @@ class Notification
         return $this;
     }
 
-    /**
-     * Icône associée au type — utilisée par le contrôleur (JSON) et les templates.
-     */
     public function getTypeIcon(): string
     {
         return match ($this->type) {
@@ -178,14 +163,13 @@ class Notification
             self::TYPE_STATUT_CANDIDATURE => '📄',
             self::TYPE_NOUVEL_AVIS => '⭐',
             self::TYPE_NOUVELLE_OFFRE => '💼',
+            self::TYPE_COMPTE_SUSPENDU => '🚫',
+            self::TYPE_OFFRE_SUPPRIMEE_ADMIN => '🛑',
+            self::TYPE_CANDIDATURE_SUPPRIMEE_ADMIN => '🗑️',
             default => '🔔',
         };
     }
 
-    /**
-     * Classe de couleur (réutilise les classes .accent/.success/.warning/.info
-     * déjà définies dans base.html.twig pour les stat-card-icon).
-     */
     public function getTypeColorClass(): string
     {
         return match ($this->type) {
@@ -193,6 +177,7 @@ class Notification
             self::TYPE_STATUT_CANDIDATURE => 'success',
             self::TYPE_NOUVEL_AVIS => 'warning',
             self::TYPE_NOUVELLE_OFFRE => 'info',
+            self::TYPE_COMPTE_SUSPENDU, self::TYPE_OFFRE_SUPPRIMEE_ADMIN, self::TYPE_CANDIDATURE_SUPPRIMEE_ADMIN => 'warning',
             default => 'accent',
         };
     }

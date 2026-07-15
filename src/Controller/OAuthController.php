@@ -231,6 +231,13 @@ class OAuthController extends AbstractController
             $this->addFlash('error', 'Cette adresse email est déjà associée à un compte non-candidat. Connectez-vous avec votre email et mot de passe.');
             return $this->redirectToRoute('app_login');
         }
+        if ($user->isSuspendu()) {
+            $motif = $user->getMotifSuspension();
+            $this->addFlash('error', $motif
+                ? 'Votre compte a été suspendu : ' . $motif
+                : 'Votre compte a été suspendu par un administrateur.');
+            return $this->redirectToRoute('app_login');
+        }
 
         // ── Nettoyage systématique de toute session résiduelle ──────
         // Évite qu'une ancienne clé de session (d'un flow interrompu

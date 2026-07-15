@@ -6,6 +6,8 @@
 #   - access_control pour la route /face-id/verify
 # Ajout pour les Notifications :
 #   - access_control pour /notifications (commun candidat/entreprise)
+# NOUVEAU — Modération Admin :
+#   - user_checker pour bloquer la connexion des comptes suspendus
 # ================================================================
 
 security:
@@ -36,6 +38,10 @@ security:
             lazy: true
             provider: app_user_provider
 
+            # NOUVEAU — Vérifie qu'un compte n'est pas suspendu avant/après
+            # authentification classique (email/mot de passe).
+            user_checker: App\Security\UserChecker
+
             # ── Authentification classique (email / password) ────────
             form_login:
                 login_path:    app_login           # GET  /connexion
@@ -45,7 +51,7 @@ security:
                 csrf_parameter:    _csrf_token
                 csrf_token_id:     authenticate
 
-                # *** NOUVEAU : délègue la redirection post-login à notre handler ***
+                # *** Délègue la redirection post-login à notre handler ***
                 # Ce handler vérifie si Face ID est activé et redirige en conséquence.
                 success_handler: App\Security\LoginSuccessHandler
 
@@ -77,16 +83,11 @@ security:
         - { path: ^/reset-password,     roles: PUBLIC_ACCESS }
 
         # Routes Face ID :
-        # /face-id/verify  → accessible à tout candidat connecté
-        #                    (même si face_id_verified n'est pas encore true,
-        #                     car c'est précisément cette page qui valide)
-        # /face-id/validate et /face-id/fallback → ROLE_CANDIDAT requis
         - { path: ^/face-id/verify,    roles: ROLE_CANDIDAT }
         - { path: ^/face-id/validate,  roles: ROLE_CANDIDAT }
         - { path: ^/face-id/fallback,  roles: ROLE_CANDIDAT }
 
-        # NOUVEAU — Notifications : commune aux candidats et entreprises,
-        # chaque utilisateur ne voit que les siennes (vérifié en Controller).
+        # Notifications : commune aux candidats et entreprises.
         - { path: ^/notifications,      roles: IS_AUTHENTICATED_FULLY }
 
         # Routes protégées par rôle (règle RM-R03)

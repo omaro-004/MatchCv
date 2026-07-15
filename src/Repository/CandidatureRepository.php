@@ -203,4 +203,75 @@ class CandidatureRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+    // ================================================================
+    //  NOUVEAU — Requêtes globales pour le module Admin
+    // ================================================================
+
+    public function countAllGlobal(): int
+    {
+        return (int) $this->createQueryBuilder('c')
+            ->select('COUNT(c.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function averageScoreGlobal(): ?float
+    {
+        $avg = $this->createQueryBuilder('c')
+            ->select('AVG(c.scoreMatching) AS moyenne')
+            ->andWhere('c.scoreMatching IS NOT NULL')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $avg !== null ? round((float) $avg, 1) : null;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function countByStatutGlobal(): array
+    {
+        $rows = $this->createQueryBuilder('c')
+            ->select('c.statut AS statut, COUNT(c.id) AS total')
+            ->groupBy('c.statut')
+            ->getQuery()
+            ->getResult();
+
+        $result = array_fill_keys(Candidature::STATUTS, 0);
+        foreach ($rows as $row) {
+            $result[$row['statut']] = (int) $row['total'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array{statut?: string, q?: string} $filters
+     * @return Candidature[]
+     */
+    public function findAllForAdmin(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->join('c.offre', 'o')
+            ->join('c.candidat', 'p')
+            ->addSelect('o', 'p')
+            ->orderBy('c.dateCandidature', 'DESC');
+
+        $statut = trim((string) ($filters['statut'] ?? ''));
+        if ($statut !== '') {
+            $qb->andWhere('c.statut = :statut')->setParameter('statut', $statut);
+        }
+
+        $q = trim((string) ($filters['q'] ?? ''));
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'LOWER(p.nomComplet) LIKE :q',
+                    'LOWER(o.titre) LIKE :q'
+                )
+            )->setParameter('q', '%' . mb_strtolower($q) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

@@ -173,6 +173,48 @@ class NotificationService
 
         $this->entityManager->flush();
     }
+    /**
+     * Candidat ou Entreprise notifié : son compte a été suspendu par un Admin.
+     */
+    public function notifierSuspensionCompte(User $user, string $motif): void
+    {
+        $this->creer(
+            $user,
+            Notification::TYPE_COMPTE_SUSPENDU,
+            'Votre compte a été suspendu',
+            sprintf('Votre compte MatchCV a été suspendu par un administrateur. Motif : %s', $motif),
+            null
+        );
+    }
+
+    /**
+     * Entreprise notifiée : une de ses offres a été supprimée par un Admin
+     * (fraude, offre abusive, violation salariale...).
+     */
+    public function notifierOffreSupprimeeParAdmin(User $destinataireEntreprise, string $titreOffre, string $motif): void
+    {
+        $this->creer(
+            $destinataireEntreprise,
+            Notification::TYPE_OFFRE_SUPPRIMEE_ADMIN,
+            'Une de vos offres a été supprimée',
+            sprintf('Votre offre « %s » a été supprimée par un administrateur. Motif : %s', $titreOffre, $motif),
+            null
+        );
+    }
+
+    /**
+     * Candidat notifié : une de ses candidatures a été supprimée par un Admin.
+     */
+    public function notifierCandidatureSupprimeeParAdmin(User $destinataireCandidat, string $titreOffre, string $motif): void
+    {
+        $this->creer(
+            $destinataireCandidat,
+            Notification::TYPE_CANDIDATURE_SUPPRIMEE_ADMIN,
+            'Une candidature a été supprimée',
+            sprintf('Votre candidature pour « %s » a été supprimée par un administrateur. Motif : %s', $titreOffre, $motif),
+            null
+        );
+    }
 
     private function creer(User $destinataire, string $type, string $titre, string $message, ?string $lien): Notification
     {

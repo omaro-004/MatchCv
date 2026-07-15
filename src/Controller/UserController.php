@@ -95,12 +95,14 @@ class UserController extends AbstractController
 
     /**
      * Dashboard admin — ROLE_ADMIN requis (règle RM-R01).
+     * Statistiques globales réelles de la plateforme.
      */
     #[Route('/admin/dashboard', name: 'app_admin_dashboard', methods: ['GET'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function adminDashboard(): Response
+    public function adminDashboard(\App\Service\AdminStatsService $statsService): Response
     {
-        // TODO: Create admin/dashboard.html.twig template
-        return $this->render('admin_dashboard.html.twig');
+        return $this->render('admin_dashboard.html.twig', [
+            'stats' => $statsService->computeStats(),
+        ]);
     }
 }

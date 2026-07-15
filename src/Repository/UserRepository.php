@@ -74,4 +74,107 @@ class UserRepository extends ServiceEntityRepository
 
         return $user;
     }
+    // ================================================================
+    //  NOUVEAU — Requêtes globales pour le module Admin
+    // ================================================================
+
+    public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countByRole(string $role): int
+    {
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->andWhere('u.role = :role')
+            ->setParameter('role', $role)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countSuspended(): int
+    {
+        return (int) $this->createQueryBuilder('u')
+            ->select('COUNT(u.id)')
+            ->andWhere('u.compteStatut = :statut')
+            ->setParameter('statut', User::STATUT_SUSPENDU)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * @param array{role?: string, statut?: string, q?: string} $filters
+     * @return User[]
+     */
+    public function findAllFiltered(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->leftJoin('u.profilCandidat', 'pc')
+            ->leftJoin('u.profilEntreprise', 'pe')
+            ->addSelect('pc', 'pe')
+            ->orderBy('u.dateInscri', 'DESC');
+
+        $role = trim((string) ($filters['role'] ?? ''));
+        if ($role !== '') {
+            $qb->andWhere('u.role = :role')->setParameter('role', $role);
+        }
+
+        $statut = trim((string) ($filters['statut'] ?? ''));
+        if ($statut !== '') {
+            $qb->andWhere('u.compteStatut = :statut')->setParameter('statut', $statut);
+        }
+
+        $q = trim((string) ($filters['q'] ?? ''));
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'LOWER(u.email) LIKE :q',
+                    'LOWER(pc.nomComplet) LIKE :q',
+                    'LOWER(pe.raisonSociale) LIKE :q'
+                )
+            )->setParameter('q', '%' . mb_strtolower($q) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Évolution des inscriptions par mois (candidats vs entreprises), pour
+     * le graphique du dashboard admin.
+     *
+     * @return array<string, array{candidat: int, entreprise: int}>
+     */
+    public function countInscriptionsByMonth(int $months = 6): array
+    {
+        $since = (new \DateTimeImmutable('first day of this month midnight'))
+            ->modify('-' . ($months - 1) . ' months');
+
+        $users = $this->createQueryBuilder('u')
+            ->andWhere('u.dateInscri >= :since')
+            ->andWhere('u.role IN (:roles)')
+            ->setParameter('since', $since)
+            ->setParameter('roles', ['candidat', 'entreprise'])
+            ->getQuery()
+            ->getResult();
+
+        $result = [];
+        $cursor = $since;
+        for ($i = 0; $i < $months; $i++) {
+            $result[$cursor->format('Y-m')] = ['candidat' => 0, 'entreprise' => 0];
+            $cursor = $cursor->modify('+1 month');
+        }
+
+        foreach ($users as $user) {
+            $key = $user->getDateInscri()->format('Y-m');
+            if (isset($result[$key])) {
+                $result[$key][$user->getRole()]++;
+            }
+        }
+
+        return $result;
+    }
 }

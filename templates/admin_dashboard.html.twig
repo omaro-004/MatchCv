@@ -1,0 +1,147 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Admin{% endblock %}
+{% block page_title %}Supervision de la plateforme{% endblock %}
+{% block page_subtitle %}Statistiques globales en temps réel · MatchCV{% endblock %}
+
+{% block body %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Utilisateurs</span>
+            <div class="stat-card-icon accent">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ stats.utilisateurs_totaux }}</div>
+        <div class="stat-card-trend" style="color:var(--text-muted);">{{ stats.candidats_totaux }} candidats · {{ stats.entreprises_totales }} entreprises</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Offres actives</span>
+            <div class="stat-card-icon warning">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0 1 12 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m4 6h.01M5 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ stats.offres_actives }}</div>
+        <div class="stat-card-trend" style="color:var(--text-muted);">{{ stats.offres_archivees }} archivées</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Candidatures</span>
+            <div class="stat-card-icon success">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ stats.candidatures_totales }}</div>
+        <div class="stat-card-trend" style="color:var(--text-muted);">Score moyen : {{ stats.score_matching_moyen is not null ? stats.score_matching_moyen ~ '%' : '—' }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Comptes suspendus</span>
+            <div class="stat-card-icon info" style="{{ stats.comptes_suspendus > 0 ? 'background:rgba(239,68,68,.1);color:var(--danger);' : '' }}">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ stats.comptes_suspendus }}</div>
+        <div class="stat-card-trend" style="color:var(--text-muted);">
+            <a href="{{ path('app_admin_utilisateurs_liste', {statut: 'suspendu'}) }}" style="color:var(--accent);">Voir les comptes →</a>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:24px;">
+    <div class="card" style="padding:20px;">
+        <div class="card-title" style="margin-bottom:16px;">Candidatures par statut</div>
+        <canvas id="chart-candidatures-statut" height="220"></canvas>
+    </div>
+    <div class="card" style="padding:20px;">
+        <div class="card-title" style="margin-bottom:16px;">Offres actives par type de contrat</div>
+        <canvas id="chart-type-contrat" height="220"></canvas>
+    </div>
+    <div class="card" style="padding:20px;grid-column:1 / -1;">
+        <div class="card-title" style="margin-bottom:16px;">Évolution des inscriptions (6 derniers mois)</div>
+        <canvas id="chart-inscriptions" height="90"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Offres à salaire élevé (à vérifier)</div>
+            <div class="card-subtitle">Top 5 des offres actives par gratification — utile pour repérer les abus</div>
+        </div>
+        <a href="{{ path('app_admin_offres_liste') }}" class="btn btn-secondary btn-sm">Voir toutes les offres</a>
+    </div>
+    {% if stats.top_salaires_suspects|length > 0 %}
+        <table class="data-table">
+            <thead><tr><th>Offre</th><th>Entreprise</th><th>Salaire</th></tr></thead>
+            <tbody>
+                {% for offre in stats.top_salaires_suspects %}
+                <tr>
+                    <td style="font-weight:600;">{{ offre.titre }}</td>
+                    <td>{{ offre.entreprise ? offre.entreprise.raisonSociale : '—' }}</td>
+                    <td>{{ offre.salaire|number_format(0, ',', ' ') }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="padding:32px 20px;text-align:center;color:var(--text-muted);font-size:.85rem;">Aucune offre active avec salaire renseigné.</div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899'];
+    const STATUT_LABELS = { en_attente: 'En attente', accepte: 'Accepté', refuse: 'Refusé' };
+    const TYPE_CONTRAT_LABELS = { stage: 'Stage', emploi: 'Emploi' };
+
+    const candidaturesStatutData = {{ stats.candidatures_par_statut|json_encode|raw }};
+    const typeContratData = {{ stats.offres_par_type_contrat|json_encode|raw }};
+    const inscriptionsData = {{ stats.inscriptions_par_mois|json_encode|raw }};
+
+    function renderPie(canvasId, dataObj, labelsMap) {
+        const el = document.getElementById(canvasId);
+        if (!el) return;
+        const keys = Object.keys(dataObj);
+        new Chart(el, {
+            type: 'doughnut',
+            data: {
+                labels: keys.map(k => labelsMap[k] || k),
+                datasets: [{ data: keys.map(k => dataObj[k]), backgroundColor: PALETTE, borderWidth: 0 }],
+            },
+            options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } }, cutout: '60%' },
+        });
+    }
+
+    renderPie('chart-candidatures-statut', candidaturesStatutData, STATUT_LABELS);
+    renderPie('chart-type-contrat', typeContratData, TYPE_CONTRAT_LABELS);
+
+    const moisKeys = Object.keys(inscriptionsData);
+    const moisNoms = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const moisLabels = moisKeys.map(m => {
+        const parts = m.split('-');
+        return moisNoms[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+    });
+
+    new Chart(document.getElementById('chart-inscriptions'), {
+        type: 'bar',
+        data: {
+            labels: moisLabels,
+            datasets: [
+                { label: 'Candidats', data: moisKeys.map(m => inscriptionsData[m].candidat), backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 28 },
+                { label: 'Entreprises', data: moisKeys.map(m => inscriptionsData[m].entreprise), backgroundColor: '#f59e0b', borderRadius: 6, maxBarThickness: 28 },
+            ],
+        },
+        options: {
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
+        },
+    });
+})();
+</script>
+
+{% endblock %}

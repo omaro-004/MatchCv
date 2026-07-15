@@ -321,4 +321,67 @@ class OffreRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+    // ================================================================
+    //  NOUVEAU — Requêtes globales pour le module Admin
+    // ================================================================
+
+    public function countAllGlobalArchived(): int
+    {
+        return (int) $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->andWhere('o.statut = :statut')
+            ->setParameter('statut', Offre::STATUT_ARCHIVEE)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * @param array{statut?: string, q?: string} $filters
+     * @return Offre[]
+     */
+    public function findAllForAdmin(array $filters = []): array
+    {
+        $qb = $this->createQueryBuilder('o')
+            ->leftJoin('o.entreprise', 'e')
+            ->addSelect('e')
+            ->orderBy('o.datePublication', 'DESC');
+
+        $statut = trim((string) ($filters['statut'] ?? ''));
+        if ($statut !== '') {
+            $qb->andWhere('o.statut = :statut')->setParameter('statut', $statut);
+        }
+
+        $q = trim((string) ($filters['q'] ?? ''));
+        if ($q !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'LOWER(o.titre) LIKE :q',
+                    'LOWER(e.raisonSociale) LIKE :q'
+                )
+            )->setParameter('q', '%' . mb_strtolower($q) . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Offres actives triées par salaire décroissant — aide à repérer les
+     * salaires suspects (trop élevés) pour la modération manuelle.
+     *
+     * @return Offre[]
+     */
+    public function findTopSalairesActifs(int $limit = 10): array
+    {
+        return $this->createQueryBuilder('o')
+            ->leftJoin('o.entreprise', 'e')
+            ->addSelect('e')
+            ->andWhere('o.statut = :statut')
+            ->andWhere('o.salaire IS NOT NULL')
+            ->setParameter('statut', Offre::STATUT_ACTIVE)
+            ->orderBy('o.salaire', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
 }
