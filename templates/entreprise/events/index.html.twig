@@ -1,121 +1,352 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Mes événements{% endblock %}
+{% block page_title %}Événements{% endblock %}
+{% block page_subtitle %}Créez, gérez et suivez vos événements recruteurs{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* ── HERO ── */
+    .evt-hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #ec4899 100%);
+        border-radius: var(--radius-lg);
+        padding: 28px 32px;
+        color: #fff;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        box-shadow: 0 12px 32px rgba(99,102,241,.28);
+    }
+    .evt-hero::after {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        background: rgba(255,255,255,.12);
+        border-radius: 50%;
+    }
+    .evt-hero-text h1 { font-size: 1.35rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -.3px; }
+    .evt-hero-text p { font-size: .86rem; opacity: .92; max-width: 480px; line-height: 1.5; }
+
+    /* ── Bouton "Ajouter" mis en valeur dans son propre cadre ── */
+    .evt-add-card {
+        position: relative;
+        z-index: 1;
+        background: rgba(255,255,255,.14);
+        border: 1.5px solid rgba(255,255,255,.35);
+        backdrop-filter: blur(6px);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: #fff;
+        transition: all .2s ease;
+        flex-shrink: 0;
+    }
+    .evt-add-card:hover {
+        background: rgba(255,255,255,.24);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,.18);
+    }
+    .evt-add-card .evt-add-icon {
+        width: 40px; height: 40px;
+        border-radius: 12px;
+        background: #fff;
+        color: #6366f1;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .evt-add-card .evt-add-label strong { display: block; font-size: .92rem; font-weight: 700; }
+    .evt-add-card .evt-add-label small { font-size: .74rem; opacity: .85; }
+
+    /* ── Stat mini cards ── */
+    .evt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+    .evt-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-sm); }
+    .evt-stat-value { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); }
+    .evt-stat-label { font-size: .74rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; margin-top: 2px; }
+
+    /* ── Toolbar ── */
+    .evt-toolbar {
+        display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+        margin-bottom: 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+        box-shadow: var(--shadow-sm);
+    }
+    .evt-toolbar .search-input-wrap { flex: 1; min-width: 200px; margin-bottom: 0; }
+    .evt-toolbar .search-input-wrap input { padding: 9px 14px 9px 38px; }
+
+    /* ── Timeline / cards ── */
+    .evt-list { display: flex; flex-direction: column; gap: 14px; }
+    .evt-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        gap: 18px;
+        transition: box-shadow .2s, border-color .2s, transform .15s;
+        position: relative;
+        overflow: hidden;
+    }
+    .evt-card:hover { box-shadow: var(--shadow-md); border-color: rgba(99,102,241,.3); transform: translateY(-1px); }
+    .evt-card.is-annule { opacity: .7; }
+    .evt-card.is-annule::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--danger);
+    }
+    .evt-card.is-termine::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--text-muted);
+    }
+    .evt-card:not(.is-annule):not(.is-termine)::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--success);
+    }
+
+    .evt-date-block {
+        flex-shrink: 0;
+        width: 68px;
+        text-align: center;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 4px;
+        align-self: flex-start;
+    }
+    .evt-date-block .day { font-size: 1.3rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .evt-date-block .month { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); font-weight: 700; margin-top: 2px; }
+    .evt-date-block .time { font-size: .68rem; color: var(--text-muted); margin-top: 4px; }
+
+    .evt-body { flex: 1; min-width: 0; }
+    .evt-body-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .evt-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .evt-meta { font-size: .78rem; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .evt-meta span { display: flex; align-items: center; gap: 4px; }
+    .evt-desc { font-size: .85rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 12px; }
+    .evt-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .evt-status-note { font-size: .78rem; color: var(--danger); font-weight: 600; margin-top: 4px; }
+
+    .evt-empty {
+        text-align: center;
+        padding: 56px 24px;
+        background: var(--surface);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+    }
+    .evt-empty .icon { font-size: 2.2rem; margin-bottom: 10px; }
+</style>
+{% endblock %}
 
 {% block body %}
-<style>
-  .events-hero{background:linear-gradient(135deg,#6a11cb 0%,#2575fc 100%);color:#fff;padding:30px;border-radius:12px;margin-bottom:20px}
-  .events-container{display:flex;gap:20px}
-  .events-list{flex:2}
-  .events-actions{flex:1}
-  .event-card{background:#fff;border-radius:10px;padding:18px;margin-bottom:12px;box-shadow:0 6px 18px rgba(20,20,30,0.06)}
-  .muted{color:#666}
-  .tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
-  .tag-online{background:linear-gradient(90deg,#00c6ff,#0072ff);color:#fff}
-  .tag-pres{background:linear-gradient(90deg,#f7971e,#ffd200);color:#222}
-</style>
 
-<div class="events-hero">
-  <h1>Gestion des événements</h1>
-  <p class="muted">Créez, modifiez, annulez et archivez vos événements. Recherches et filtres en temps réel.</p>
-  <a class="btn btn-light" href="{{ path('app_entreprise_events_new') }}">Ajouter un événement</a>
+<div class="evt-hero">
+    <div class="evt-hero-text">
+        <h1>Gestion des événements</h1>
+        <p>Créez, modifiez, annulez et archivez vos événements recruteurs. Recherche et filtres instantanés ci-dessous.</p>
+    </div>
+    <a class="evt-add-card" href="{{ path('app_entreprise_events_new') }}">
+        <span class="evt-add-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <span class="evt-add-label">
+            <strong>Ajouter un événement</strong>
+            <small>Publiez une nouvelle session en 1 minute</small>
+        </span>
+    </a>
 </div>
 
-<div class="events-container">
-  <div class="events-list">
-    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
-      <input id="search" class="form-control" placeholder="Rechercher..." />
-      <select id="filter-type" class="form-control" style="width:160px">
-        <option value="all">Tous</option>
+{% set total = (activeEvents|length) + (archivedEvents|length) + (cancelledEvents|length) %}
+{% set annules = cancelledEvents|length %}
+{% set archives = archivedEvents|length %}
+{% set avenir = activeEvents|length %}
+
+<div class="evt-stats">
+    <div class="evt-stat">
+        <div class="evt-stat-value">{{ total }}</div>
+        <div class="evt-stat-label">Total événements</div>
+    </div>
+    <div class="evt-stat">
+        <div class="evt-stat-value">{{ avenir }}</div>
+        <div class="evt-stat-label">À venir</div>
+    </div>
+    <div class="evt-stat">
+        <div class="evt-stat-value">{{ annules }}</div>
+        <div class="evt-stat-label">Annulés</div>
+    </div>
+    <div class="evt-stat">
+        <div class="evt-stat-value">{{ archives }}</div>
+        <div class="evt-stat-label">Archivés</div>
+    </div>
+</div>
+
+<div class="evt-toolbar">
+    <div class="search-input-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search" type="text" placeholder="Rechercher un événement par titre ou description...">
+    </div>
+    <select id="filter-type" class="filter-select">
+        <option value="all">Tous les formats</option>
         <option value="online">En ligne</option>
         <option value="presential">Présentiel</option>
-      </select>
-      <input id="filter-date" type="date" class="form-control" />
-    </div>
-
-    <div id="events" data-now="{{ now.format('c') }}">
-      {% for e in events %}
-        <div class="event-card" data-title="{{ e.getTitre()|lower }}" data-desc="{{ e.getDescription()|lower }}" data-online="{{ e.isOnline() ? 'online' : 'presential' }}" data-date="{{ e.getDebutAt().format('Y-m-d') }}">
-          <div style="display:flex;justify-content:space-between;align-items:start">
-            <div>
-              <h3>{{ e.getTitre() }}</h3>
-              <p class="muted">{{ e.getDebutAt().format('d/m/Y H:i') }} — {{ e.getFinAt().format('d/m/Y H:i') }}</p>
-            </div>
-            <div style="text-align:right">
-              {% if e.isOnline() %}
-                <span class="tag tag-online">En ligne</span>
-              {% else %}
-                <span class="tag tag-pres">Présentiel</span>
-              {% endif %}
-              <div class="muted">Capacité: {{ e.getCapacite() ?: '—' }}</div>
-            </div>
-          </div>
-
-          <p>{{ e.getDescription()|slice(0,300) }}{% if e.getDescription()|length > 300 %}…{% endif %}</p>
-
-          <div style="display:flex;gap:8px;align-items:center">
-            <a class="btn btn-sm btn-primary" href="{{ path('app_entreprise_events_show', {'id': e.getId()}) }}">Voir</a>
-            <a class="btn btn-sm btn-secondary" href="{{ path('app_entreprise_events_edit', {'id': e.getId()}) }}">Modifier</a>
-            <form method="post" action="{{ path('app_entreprise_events_cancel', {'id': e.getId()}) }}" style="display:inline" onsubmit="return confirm('Annuler cet événement ?')">
-              <input type="hidden" name="note" value="Annulé par l'organisateur" />
-              <button class="btn btn-sm btn-warning" type="submit">Annuler</button>
-            </form>
-            <form method="post" action="{{ path('app_entreprise_events_archive', {'id': e.getId()}) }}" style="display:inline">
-              <button class="btn btn-sm btn-outline-secondary" type="submit">{{ e.isArchive() ? 'Désarchiver' : 'Archiver' }}</button>
-            </form>
-            {% if e.isAnnule() %}
-              <span class="muted">Annulé — {{ e.getNoteAnnulation() }}</span>
-            {% else %}
-              {% set now_dt = now %}
-              {% if e.getFinAt() < now_dt %}
-                <span class="muted">Terminé</span>
-              {% endif %}
-            {% endif %}
-          </div>
-        </div>
-      {% else %}
-        <div class="event-card">Aucun événement pour le moment.</div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="events-actions">
-    <div class="card p-3">
-      <h4>Astuce</h4>
-      <p class="muted">Utilisez la recherche pour filtrer par titre ou description. Les archives masquent l'événement dans le flux principal.</p>
-    </div>
-  </div>
+    </select>
+    <input id="filter-date" type="date" class="filter-select">
 </div>
 
+<div id="events" class="evt-list" data-now="{{ now.format('c') }}">
+    {% for e in activeEvents %}
+        {% set termine = e.finAt is not null and e.finAt < now %}
+        <div class="evt-card {{ termine ? 'is-termine' : '' }}"
+             data-title="{{ e.titre|lower }}"
+             data-desc="{{ e.description|lower }}"
+             data-online="{{ e.isOnline ? 'online' : 'presential' }}"
+             data-date="{{ e.debutAt ? e.debutAt.format('Y-m-d') : '' }}">
+
+            {% if e.photo %}
+                <div style="width:160px;flex-shrink:0;border-radius:8px;overflow:hidden;">
+                    <img src="/uploads/evenements/{{ e.photo }}" alt="{{ e.titre }}" style="width:160px;height:120px;object-fit:cover;display:block;">
+                </div>
+            {% endif %}
+
+            <div class="evt-body">
+                <div class="evt-body-top">
+                    <div>
+                        <div class="evt-title">{{ e.titre }}</div>
+                        <div class="evt-meta">
+                            <span>
+                                {% if e.isOnline %}
+                                    <span style="font-weight:600;color:#475569">💻 En ligne</span>
+                                {% else %}
+                                    <span style="font-weight:600;color:#475569">📍 {{ e.lieu ?: 'Présentiel' }}</span>
+                                {% endif %}
+                            </span>
+                            <span>🗓️ {{ e.debutAt ? e.debutAt.format('d/m/Y H:i') : '—' }} → {{ e.finAt ? e.finAt.format('d/m/Y H:i') : '—' }}</span>
+                            <span>👥 {{ e.capacite ? e.capacite ~ ' places' : 'Capacité illimitée' }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        {% if termine %}
+                            <span style="color:#6b7280">Terminé</span>
+                        {% else %}
+                            <span style="color:#10b981">Actif</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <p class="evt-desc">{{ e.description|slice(0, 220) }}{% if e.description|length > 220 %}…{% endif %}</p>
+
+                <div class="evt-actions">
+                    <a class="btn btn-secondary btn-sm" href="{{ path('app_entreprise_events_show', {id: e.id}) }}">Voir</a>
+                    <a class="btn btn-secondary btn-sm" href="{{ path('app_entreprise_events_edit', {id: e.id}) }}">Modifier</a>
+
+                    <form method="post" action="{{ path('app_entreprise_events_cancel', {id: e.id}) }}" style="display:inline" onsubmit="return confirm('Annuler cet événement ?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('evenement_cancel_' ~ e.id) }}">
+                        <input type="hidden" name="note" value="Annulé par l'organisateur">
+                        <button class="btn btn-sm" style="background:transparent;color:#d97706;border:1px solid rgba(217,119,6,.08);" type="submit">Annuler</button>
+                    </form>
+
+                    <form method="post" action="{{ path('app_entreprise_events_archive', {id: e.id}) }}" style="display:inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('evenement_archive_' ~ e.id) }}">
+                        <button class="btn btn-secondary btn-sm" type="submit">{{ e.isArchive ? 'Désarchiver' : 'Archiver' }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="evt-empty">
+            <div class="icon">🎪</div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">Aucun événement pour le moment</div>
+            <p>Créez votre premier événement pour engager les candidats.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{# Archived list #}
+{% if archivedEvents|length %}
+    <h3 style="margin-top:18px;">Archivés</h3>
+    <div class="evt-list">
+        {% for e in archivedEvents %}
+            <div class="evt-card is-termine" style="align-items:stretch;">
+                <div style="width:140px;flex-shrink:0;border-radius:8px;overflow:hidden;height:140px;">
+                    {% if e.photo %}
+                        <img src="/uploads/evenements/{{ e.photo }}" style="width:140px;height:140px;object-fit:cover;display:block;" alt="{{ e.titre }}">
+                    {% else %}
+                        <div style="width:140px;height:140px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#9ca3af;">No photo</div>
+                    {% endif %}
+                </div>
+                <div class="evt-body" style="display:flex;flex-direction:column;justify-content:space-between;">
+                    <div>
+                        <div class="evt-title">{{ e.titre }}</div>
+                        <div class="evt-meta">{{ e.debutAt ? e.debutAt.format('d/m/Y') : '—' }} — {{ e.finAt ? e.finAt.format('d/m/Y') : '—' }}</div>
+                        {% if e.noteAnnulation %}<div class="evt-status-note">Motif : {{ e.noteAnnulation }}</div>{% endif %}
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <a class="btn btn-secondary btn-sm" href="{{ path('app_entreprise_events_show', {id: e.id}) }}">Voir</a>
+                        <a class="btn btn-secondary btn-sm" href="{{ path('app_entreprise_events_edit', {id: e.id}) }}">Modifier</a>
+                        <form method="post" action="{{ path('app_entreprise_events_archive', {id: e.id}) }}" style="display:inline;margin-left:auto;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('evenement_archive_' ~ e.id) }}">
+                            <button class="btn btn-sm" type="submit" style="background:transparent;color:#374151;border:1px solid rgba(55,65,81,.08);">Désarchiver</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{# Cancelled list #}
+{% if cancelledEvents|length %}
+    <h3 style="margin-top:18px;">Annulés</h3>
+    <div class="evt-list">
+        {% for e in cancelledEvents %}
+            <div class="evt-card is-annule">
+                <div style="width:120px;flex-shrink:0;border-radius:8px;overflow:hidden;">
+                    {% if e.photo %}<img src="/uploads/evenements/{{ e.photo }}" style="width:120px;height:80px;object-fit:cover;" alt="">{% endif %}
+                </div>
+                <div class="evt-body">
+                    <div class="evt-title">{{ e.titre }}</div>
+                    <div class="evt-meta">{{ e.debutAt ? e.debutAt.format('d/m/Y') : '—' }} — {{ e.finAt ? e.finAt.format('d/m/Y') : '—' }}</div>
+                    {% if e.noteAnnulation %}<div class="evt-status-note">Motif : {{ e.noteAnnulation }}</div>{% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <script>
-  const search = document.getElementById('search');
-  const filterType = document.getElementById('filter-type');
-  const filterDate = document.getElementById('filter-date');
-  const events = Array.from(document.querySelectorAll('#events .event-card'));
+(function () {
+    const search = document.getElementById('search');
+    const filterType = document.getElementById('filter-type');
+    const filterDate = document.getElementById('filter-date');
+    const cards = Array.from(document.querySelectorAll('#events .evt-card'));
 
-  function applyFilters(){
-    const q = search.value.trim().toLowerCase();
-    const type = filterType.value;
-    const date = filterDate.value;
+    function applyFilters() {
+        const q = search.value.trim().toLowerCase();
+        const type = filterType.value;
+        const date = filterDate.value;
 
-    events.forEach(el=>{
-      const title = el.dataset.title;
-      const desc = el.dataset.desc;
-      const online = el.dataset.online;
-      const d = el.dataset.date;
+        cards.forEach(function (el) {
+            let ok = true;
+            if (q && !(el.dataset.title.includes(q) || el.dataset.desc.includes(q))) ok = false;
+            if (type !== 'all' && el.dataset.online !== type) ok = false;
+            if (date && el.dataset.date !== date) ok = false;
+            el.style.display = ok ? '' : 'none';
+        });
+    }
 
-      let ok = true;
-      if(q && !(title.includes(q) || desc.includes(q))) ok = false;
-      if(type !== 'all' && online !== type) ok = false;
-      if(date && d !== date) ok = false;
-
-      el.style.display = ok ? '' : 'none';
-    });
-  }
-
-  search.addEventListener('input', applyFilters);
-  filterType.addEventListener('change', applyFilters);
-  filterDate.addEventListener('change', applyFilters);
+    search.addEventListener('input', applyFilters);
+    filterType.addEventListener('change', applyFilters);
+    filterDate.addEventListener('change', applyFilters);
+})();
 </script>
 
 {% endblock %}

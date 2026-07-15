@@ -6,6 +6,7 @@ use Doctrine\ORM\Mapping as ORM;
 use App\Repository\EvenementRepository;
 
 #[ORM\Entity(repositoryClass: EvenementRepository::class)]
+#[ORM\Table(name: 'evenement')]
 class Evenement
 {
     #[ORM\Id]
@@ -29,11 +30,11 @@ class Evenement
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $lieu = null;
 
-    #[ORM\Column(type: 'datetime')]
-    private \DateTimeInterface $debutAt;
+    #[ORM\Column(type: 'datetime_immutable')]
+    private ?\DateTimeInterface $debutAt = null;
 
-    #[ORM\Column(type: 'datetime')]
-    private \DateTimeInterface $finAt;
+    #[ORM\Column(type: 'datetime_immutable')]
+    private ?\DateTimeInterface $finAt = null;
 
     #[ORM\Column(type: 'integer', nullable: true)]
     private ?int $capacite = null;
@@ -47,7 +48,7 @@ class Evenement
     #[ORM\Column(type: 'boolean')]
     private bool $isArchive = false;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeInterface $createdAt;
 
     public function __construct()
@@ -115,23 +116,23 @@ class Evenement
         return $this;
     }
 
-    public function getDebutAt(): \DateTimeInterface
+    public function getDebutAt(): ?\DateTimeInterface
     {
         return $this->debutAt;
     }
 
-    public function setDebutAt(\DateTimeInterface $debutAt): self
+    public function setDebutAt(?\DateTimeInterface $debutAt): self
     {
         $this->debutAt = $debutAt;
         return $this;
     }
 
-    public function getFinAt(): \DateTimeInterface
+    public function getFinAt(): ?\DateTimeInterface
     {
         return $this->finAt;
     }
 
-    public function setFinAt(\DateTimeInterface $finAt): self
+    public function setFinAt(?\DateTimeInterface $finAt): self
     {
         $this->finAt = $finAt;
         return $this;
@@ -184,5 +185,33 @@ class Evenement
     public function getCreatedAt(): \DateTimeInterface
     {
         return $this->createdAt;
+    }
+
+    /**
+     * true si l'événement n'est ni annulé, ni encore terminé.
+     */
+    public function isTermine(): bool
+    {
+        if ($this->isAnnule) {
+            return false;
+        }
+        if ($this->finAt === null) {
+            return false;
+        }
+        return $this->finAt < new \DateTimeImmutable();
+    }
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $photo = null;
+
+    public function getPhoto(): ?string
+    {
+        return $this->photo;
+    }
+
+    public function setPhoto(?string $photo): self
+    {
+        $this->photo = $photo;
+        return $this;
     }
 }

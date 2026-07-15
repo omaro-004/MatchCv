@@ -1,14 +1,96 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Détails événement{% endblock %}
+{% block title %}{{ evenement.titre }}{% endblock %}
+{% block page_title %}{{ evenement.titre }}{% endblock %}
+{% block page_subtitle %}Détail de l'événement{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .evt-show-hero {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #ec4899 100%);
+        border-radius: var(--radius-lg);
+        padding: 26px 30px;
+        color: #fff;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 32px rgba(99,102,241,.25);
+    }
+    .evt-show-hero .badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .evt-show-hero .badges span {
+        font-size: .74rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+        background: rgba(255,255,255,.18);
+    }
+    .evt-show-hero h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; }
+    .evt-show-hero .dates { font-size: .86rem; opacity: .92; }
+
+    .evt-show-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .evt-show-grid { grid-template-columns: 1fr; } }
+
+    .evt-info-row { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: .86rem; }
+    .evt-info-row:last-child { border-bottom: none; }
+    .evt-info-row .label { width: 130px; flex-shrink: 0; color: var(--text-secondary); font-weight: 600; }
+    .evt-info-row .value { color: var(--text-primary); }
+</style>
+{% endblock %}
 
 {% block body %}
-<div class="container">
-  <h1>{{ evenement.titre }}</h1>
-  <p class="muted">{{ evenement.debutAt.format('d/m/Y H:i') }} — {{ evenement.finAt.format('d/m/Y H:i') }}</p>
-  <div>{{ evenement.description|raw }}</div>
-  <p>Type: {{ evenement.isOnline() ? 'En ligne' : 'Présentiel' }}</p>
-  <p>Capacité: {{ evenement.capacite ?: '—' }}</p>
-  <a class="btn btn-secondary" href="{{ path('app_entreprise_events') }}">Retour</a>
+
+<div style="margin-bottom:16px;">
+    <a href="{{ path('app_entreprise_events') }}" style="color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;font-size:.82rem;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
+        Retour aux événements
+    </a>
 </div>
+
+<div class="evt-show-hero">
+    <div class="badges">
+        {% if evenement.isOnline %}
+            <span>💻 En ligne</span>
+        {% else %}
+            <span>📍 {{ evenement.lieu ?: 'Présentiel' }}</span>
+        {% endif %}
+        {% if evenement.isAnnule %}
+            <span style="background:rgba(239,68,68,.35);">Annulé</span>
+        {% elseif evenement.finAt < date() %}
+            <span>Terminé</span>
+        {% else %}
+            <span style="background:rgba(34,197,94,.35);">Actif</span>
+        {% endif %}
+        {% if evenement.isArchive %}
+            <span>Archivé</span>
+        {% endif %}
+    </div>
+    <h1>{{ evenement.titre }}</h1>
+    <div class="dates">{{ evenement.debutAt.format('d/m/Y à H:i') }} → {{ evenement.finAt.format('d/m/Y à H:i') }}</div>
+</div>
+
+<div class="evt-show-grid">
+    <div class="card" style="padding:24px;">
+        <div class="card-title" style="margin-bottom:10px;">Description</div>
+        <p style="font-size:.9rem;color:var(--text-secondary);line-height:1.7;white-space:pre-line;">{{ evenement.description }}</p>
+
+        {% if evenement.isAnnule and evenement.noteAnnulation %}
+            <div style="margin-top:18px;padding:14px 16px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-sm);">
+                <strong style="color:var(--danger);font-size:.85rem;">Motif d'annulation</strong>
+                <p style="font-size:.85rem;color:var(--text-secondary);margin-top:4px;">{{ evenement.noteAnnulation }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card" style="padding:24px;">
+        <div class="card-title" style="margin-bottom:12px;">Informations</div>
+        <div class="evt-info-row"><div class="label">Format</div><div class="value">{{ evenement.isOnline ? 'En ligne' : 'Présentiel' }}</div></div>
+        {% if not evenement.isOnline %}
+            <div class="evt-info-row"><div class="label">Lieu</div><div class="value">{{ evenement.lieu ?: 'Non renseigné' }}</div></div>
+        {% endif %}
+        <div class="evt-info-row"><div class="label">Début</div><div class="value">{{ evenement.debutAt.format('d/m/Y H:i') }}</div></div>
+        <div class="evt-info-row"><div class="label">Fin</div><div class="value">{{ evenement.finAt.format('d/m/Y H:i') }}</div></div>
+        <div class="evt-info-row"><div class="label">Capacité</div><div class="value">{{ evenement.capacite ?: 'Illimitée' }}</div></div>
+        <div class="evt-info-row"><div class="label">Créé le</div><div class="value">{{ evenement.createdAt.format('d/m/Y H:i') }}</div></div>
+
+        <div style="display:flex;gap:8px;margin-top:18px;">
+            <a href="{{ path('app_entreprise_events_edit', {id: evenement.id}) }}" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">Modifier</a>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
