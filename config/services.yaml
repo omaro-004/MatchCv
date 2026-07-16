@@ -21,7 +21,7 @@ services:
             - '../src/Kernel.php'
 
     # ── LoginSuccessHandler ──────────────────────────────
-    App\Security\LoginSuccessHandler:
+    App\Handlers\LoginSuccessHandler:
         arguments:
             $router: '@router'
 

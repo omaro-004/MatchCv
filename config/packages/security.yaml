@@ -53,7 +53,7 @@ security:
 
                 # *** Délègue la redirection post-login à notre handler ***
                 # Ce handler vérifie si Face ID est activé et redirige en conséquence.
-                success_handler: App\Security\LoginSuccessHandler
+                success_handler: App\Handlers\LoginSuccessHandler
 
                 # En cas d'échec, retour sur la page de login
                 failure_path:  app_login

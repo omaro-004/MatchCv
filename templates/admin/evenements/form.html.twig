@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block page_subtitle %}{{ page_subtitle }}{% endblock %}
+
+{% block body %}
+
+{{ include('entreprise/events/_form_styles.html.twig') }}
+
+<div class="card" style="padding:24px;">
+    {{ form_start(form, {'attr': {'novalidate': 'novalidate', 'id': 'evenement-form'}}) }}
+        <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.9fr);gap:24px;align-items:start;">
+            <div>
+                <div style="display:grid;gap:16px;">
+                    {{ form_row(form.titre) }}
+                    {{ form_row(form.description) }}
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        {{ form_row(form.debutAt) }}
+                        {{ form_row(form.finAt) }}
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        {{ form_row(form.capacite) }}
+                        {{ form_row(form.photo) }}
+                    </div>
+                    {{ form_row(form.isOnline) }}
+                    {{ form_row(form.lieu) }}
+                </div>
+
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;">
+                    <a href="{{ path('app_admin_evenements_liste') }}" class="btn btn-secondary">Retour</a>
+                    <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+                </div>
+            </div>
+
+            <div class="card" style="padding:18px;position:sticky;top:24px;">
+                <div style="font-weight:700;font-size:.95rem;margin-bottom:10px;">Aperçu</div>
+                <div style="display:grid;gap:10px;">
+                    <div class="evt-preview-badge" id="evt-preview-format">💻 / 📍</div>
+                    <div style="width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:linear-gradient(135deg, rgba(99,102,241,.15), rgba(59,130,246,.08));display:flex;align-items:center;justify-content:center;">
+                        {% if evenement.photo %}
+                            <img id="evt-preview-photo" src="/uploads/evenements/{{ evenement.photo }}" alt="photo" style="max-width:100%;max-height:100%;object-fit:cover;" />
+                        {% else %}
+                            <div id="evt-preview-photo-placeholder" style="color:var(--text-muted);font-size:.82rem;">Photo de l'événement</div>
+                        {% endif %}
+                    </div>
+                    <div class="evt-preview-title" id="evt-preview-title">{{ evenement.titre ?: 'Titre de l\'événement' }}</div>
+                    <div class="evt-preview-meta" id="evt-preview-meta">Renseignez les dates et la capacité</div>
+                    <div class="evt-preview-desc" id="evt-preview-desc">{{ evenement.description ?: 'Description...' }}</div>
+                </div>
+            </div>
+        </div>
+    {{ form_end(form) }}
+</div>
+
+<script>
+(function () {
+    const titleInput = document.querySelector('#{{ form.titre.vars.id }}');
+    const descInput = document.querySelector('#{{ form.description.vars.id }}');
+    const onlineInput = document.querySelector('#{{ form.isOnline.vars.id }}');
+    const lieuInput = document.querySelector('#{{ form.lieu.vars.id }}');
+    const debutInput = document.querySelector('#{{ form.debutAt.vars.id }}');
+    const finInput = document.querySelector('#{{ form.finAt.vars.id }}');
+    const capaciteInput = document.querySelector('#{{ form.capacite.vars.id }}');
+    const photoInput = document.querySelector('#{{ form.photo.vars.id }}');
+    const previewTitle = document.getElementById('evt-preview-title');
+    const previewDesc = document.getElementById('evt-preview-desc');
+    const previewMeta = document.getElementById('evt-preview-meta');
+    const previewFormat = document.getElementById('evt-preview-format');
+    const previewPhoto = document.getElementById('evt-preview-photo');
+    const photoPlaceholder = document.getElementById('evt-preview-photo-placeholder');
+
+    function updatePreview() {
+        if (previewTitle && titleInput) previewTitle.textContent = titleInput.value || 'Titre de l\'événement';
+        if (previewDesc && descInput) previewDesc.textContent = descInput.value || 'Description...';
+
+        if (previewFormat && onlineInput) {
+            previewFormat.textContent = onlineInput.checked ? '💻 En ligne' : '📍 ' + ((lieuInput && lieuInput.value.trim()) || 'Présentiel');
+        }
+
+        const metaParts = [];
+        if (debutInput && debutInput.value) metaParts.push('Début : ' + debutInput.value.replace('T', ' '));
+        if (finInput && finInput.value) metaParts.push('Fin : ' + finInput.value.replace('T', ' '));
+        if (capaciteInput && capaciteInput.value) metaParts.push(capaciteInput.value + ' places');
+        if (previewMeta) previewMeta.textContent = metaParts.length ? metaParts.join(' · ') : 'Renseignez les dates et la capacité';
+    }
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function () {
+            const file = photoInput.files && photoInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                if (previewPhoto) previewPhoto.src = e.target.result;
+                if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    [titleInput, descInput, onlineInput, lieuInput, debutInput, finInput, capaciteInput].forEach(function (el) {
+        if (el) el.addEventListener('input', updatePreview);
+        if (el) el.addEventListener('change', updatePreview);
+    });
+
+    updatePreview();
+})();
+</script>
+
+{% endblock %}

@@ -66,4 +66,63 @@ class EvenementRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return Evenement[] */
+    public function findAllActive(): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.isAnnule = false')
+            ->andWhere('e.isArchive = false')
+            ->orderBy('e.debutAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @param array{q?: string, statut?: string} $filters
+     *
+     * @return Evenement[]
+     */
+    public function findAllForAdmin(array $filters = []): array
+    {
+        $now = new \DateTimeImmutable();
+
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.entreprise', 'u')
+            ->leftJoin('u.profilEntreprise', 'pe')
+            ->addSelect('u', 'pe')
+            ->orderBy('e.debutAt', 'DESC');
+
+        $query = trim((string) ($filters['q'] ?? ''));
+        if ($query !== '') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    'LOWER(e.titre) LIKE :query',
+                    'LOWER(e.description) LIKE :query',
+                    'LOWER(e.lieu) LIKE :query',
+                    'LOWER(u.email) LIKE :query',
+                    'LOWER(pe.raisonSociale) LIKE :query'
+                )
+            )->setParameter('query', '%' . mb_strtolower($query) . '%');
+        }
+
+        $statut = trim((string) ($filters['statut'] ?? ''));
+        if ($statut === 'active') {
+            $qb->andWhere('e.isAnnule = false')
+                ->andWhere('e.isArchive = false')
+                ->andWhere('e.finAt >= :now')
+                ->setParameter('now', $now);
+        } elseif ($statut === 'archivee') {
+            $qb->andWhere('e.isArchive = true');
+        } elseif ($statut === 'annulee') {
+            $qb->andWhere('e.isAnnule = true');
+        } elseif ($statut === 'terminee') {
+            $qb->andWhere('e.isAnnule = false')
+                ->andWhere('e.isArchive = false')
+                ->andWhere('e.finAt < :now')
+                ->setParameter('now', $now);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

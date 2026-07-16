@@ -6,6 +6,112 @@
 
 {% block body %}
 
+<style>
+    .candidate-market-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 26px;
+        margin-bottom: 18px;
+        background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.94) 40%, rgba(249,115,22,.86));
+        color: #fff;
+        box-shadow: 0 24px 48px rgba(15,23,42,.16);
+    }
+    .candidate-market-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,.14), transparent 28%), radial-gradient(circle at bottom left, rgba(59,130,246,.18), transparent 24%);
+        pointer-events: none;
+    }
+    .candidate-market-hero-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+    .candidate-market-hero h2 {
+        margin: 8px 0 10px;
+        font-size: clamp(1.6rem, 2.4vw, 2.8rem);
+        letter-spacing: -.05em;
+        line-height: 1.02;
+    }
+    .candidate-market-hero p { margin: 0; max-width: 62ch; color: rgba(255,255,255,.84); line-height: 1.65; }
+    .candidate-market-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.16);
+        color: #fff;
+        font-size: .82rem;
+        font-weight: 600;
+        margin-top: 14px;
+    }
+    .candidate-market-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0,1fr));
+        gap: 10px;
+        min-width: min(100%, 360px);
+    }
+    .candidate-market-kpis div {
+        padding: 13px;
+        border-radius: 18px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.14);
+    }
+    .candidate-market-kpis strong { display:block; font-size:1.2rem; line-height:1; margin-bottom:4px; }
+    .candidate-market-kpis span { font-size:.75rem; color: rgba(255,255,255,.78); }
+    .candidate-offers-grid { display:grid; gap:16px; }
+    .candidate-offer-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,247,237,.88));
+        border: 1px solid rgba(148,163,184,.16);
+        box-shadow: 0 16px 40px rgba(15,23,42,.08);
+        display: grid;
+        grid-template-columns: 72px minmax(0,1fr) auto;
+        gap: 16px;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+    }
+    .candidate-offer-card:hover { transform: translateY(-2px); }
+    .candidate-offer-card .offer-logo { width:72px; height:72px; border-radius:20px; }
+    .candidate-offer-card .offer-actions { align-self: stretch; justify-content: center; }
+    @media (max-width: 860px) {
+        .candidate-offer-card { grid-template-columns: 1fr; }
+        .candidate-offer-card .offer-actions { align-items: flex-start; }
+        .candidate-market-kpis { grid-template-columns: repeat(3, minmax(0,1fr)); width: 100%; }
+    }
+    @media (max-width: 560px) {
+        .candidate-market-kpis { grid-template-columns: 1fr; }
+    }
+</style>
+
+<section class="candidate-market-hero">
+    <div class="candidate-market-hero-inner">
+        <div>
+            <div class="badge badge-neutral" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.16);">Marché des opportunités</div>
+            <h2>Des offres plus lisibles, plus vibrantes, plus rapides à parcourir.</h2>
+            <p>Le flux candidat a été pensé comme une vitrine éditoriale: recherche rapide, repères visuels forts et cartes plus vivantes pour choisir sans friction.</p>
+            <div class="candidate-market-chip">🔎 Filtrer, comparer, postuler</div>
+        </div>
+        <div class="candidate-market-kpis">
+            <div><strong>{{ offres|length }}</strong><span>offres visibles</span></div>
+            <div><strong>{{ filters.typeContrat ? '1' : '2' }}</strong><span>contrats ciblés</span></div>
+            <div><strong>{{ filters.modeTravail ? '1' : '3' }}</strong><span>modes de travail</span></div>
+        </div>
+    </div>
+</section>
+
 <form method="get" class="search-bar">
     <div class="search-input-wrap">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -34,10 +140,11 @@
     </div>
 {% endif %}
 
+<div class="candidate-offers-grid">
 {% for offre in offres %}
     {% set entreprise = offre.entreprise %}
     {% set deja = offre.id in offres_candidatees_ids %}
-    <a href="{{ path('app_candidat_offre_detail', {id: offre.id}) }}" class="offer-card" style="text-decoration:none;color:inherit;">
+    <a href="{{ path('app_candidat_offre_detail', {id: offre.id}) }}" class="candidate-offer-card">
         <div class="offer-logo" style="background:linear-gradient(135deg,#6366f1,#a855f7);overflow:hidden;">
             {% if entreprise.logo %}
                 <img src="{{ asset(entreprise.logo) }}" alt="{{ entreprise.raisonSociale }}" style="width:100%;height:100%;object-fit:cover;">
@@ -79,5 +186,6 @@
         </div>
     </a>
 {% endfor %}
+</div>
 
 {% endblock %}

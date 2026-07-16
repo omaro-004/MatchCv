@@ -7,6 +7,157 @@
 {% block body %}
 
 <style>
+    .candidate-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 28px;
+        margin-bottom: 24px;
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,.22), transparent 28%),
+            linear-gradient(135deg, rgba(251,113,133,.95) 0%, rgba(249,115,22,.92) 42%, rgba(59,130,246,.92) 100%);
+        color: #fff;
+        box-shadow: 0 24px 48px rgba(15,23,42,.16);
+    }
+    .candidate-hero::before,
+    .candidate-hero::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(12px);
+    }
+    .candidate-hero::before {
+        width: 220px;
+        height: 220px;
+        background: rgba(255,255,255,.14);
+        top: -80px;
+        right: -40px;
+    }
+    .candidate-hero::after {
+        width: 160px;
+        height: 160px;
+        background: rgba(255,255,255,.10);
+        left: 34%;
+        bottom: -72px;
+    }
+    .candidate-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(280px, .9fr);
+        gap: 22px;
+        align-items: end;
+    }
+    .candidate-hero-copy h2 {
+        margin: 8px 0 10px;
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        line-height: 1.02;
+        letter-spacing: -.05em;
+    }
+    .candidate-hero-copy p {
+        margin: 0;
+        max-width: 56ch;
+        color: rgba(255,255,255,.88);
+        font-size: .96rem;
+        line-height: 1.7;
+    }
+    .candidate-hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .candidate-hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.16);
+        border: 1px solid rgba(255,255,255,.18);
+        color: #fff;
+        font-size: .82rem;
+        font-weight: 600;
+        backdrop-filter: blur(12px);
+    }
+    .candidate-hero-panel {
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 22px;
+        padding: 18px;
+        backdrop-filter: blur(16px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+    }
+    .candidate-hero-panel .panel-kpi {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 12px;
+    }
+    .candidate-hero-panel .panel-kpi div {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.14);
+    }
+    .candidate-hero-panel .panel-kpi strong {
+        display: block;
+        font-size: 1.35rem;
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .candidate-hero-panel .panel-kpi span {
+        font-size: .76rem;
+        color: rgba(255,255,255,.82);
+    }
+    .candidate-hero-panel .panel-note {
+        margin-top: 14px;
+        font-size: .85rem;
+        color: rgba(255,255,255,.88);
+        line-height: 1.55;
+    }
+    @media (max-width: 960px) {
+        .candidate-hero-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<section class="candidate-hero">
+    <div class="candidate-hero-grid">
+        <div class="candidate-hero-copy">
+            <div class="badge badge-neutral" style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.18);">Espace candidat</div>
+            <h2>Votre parcours mérite une vitrine plus vivante.</h2>
+            <p>Explorez les offres, suivez vos candidatures et améliorez votre profil dans une interface plus expressive, plus lumineuse et plus rapide à lire.</p>
+            <div class="candidate-hero-pills">
+                <span class="candidate-hero-pill">📌 Matchs personnalisés</span>
+                <span class="candidate-hero-pill">⚡ Réponses rapides</span>
+                <span class="candidate-hero-pill">🎯 Candidatures suivies</span>
+            </div>
+        </div>
+        <div class="candidate-hero-panel">
+            <div class="panel-kpi">
+                <div>
+                    <strong>{{ stats.offres_disponibles }}</strong>
+                    <span>offres pour vous</span>
+                </div>
+                <div>
+                    <strong>{{ stats.candidatures_totales }}</strong>
+                    <span>candidatures envoyées</span>
+                </div>
+                <div>
+                    <strong>{{ stats.offres_nouvelles_semaine }}</strong>
+                    <span>nouvelles cette semaine</span>
+                </div>
+                <div>
+                    <strong>{{ stats.score_matching_moyen is not null ? stats.score_matching_moyen ~ '%' : '—' }}</strong>
+                    <span>score moyen</span>
+                </div>
+            </div>
+            <div class="panel-note">Votre espace s’adapte à votre activité pour rendre les actions prioritaires plus visibles.</div>
+        </div>
+    </div>
+</section>
+
+<style>
     .completion-banner {
         background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
         border-radius: var(--radius-lg);

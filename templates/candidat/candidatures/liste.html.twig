@@ -6,6 +6,73 @@
 
 {% block body %}
 
+<style>
+    .candidate-application-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        padding: 24px;
+        margin-bottom: 18px;
+        color: #fff;
+        background: linear-gradient(135deg, rgba(59,130,246,.95), rgba(168,85,247,.92) 42%, rgba(249,115,22,.88));
+        box-shadow: 0 22px 46px rgba(15,23,42,.14);
+    }
+    .candidate-application-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,.14), transparent 26%), radial-gradient(circle at bottom left, rgba(255,255,255,.08), transparent 28%);
+        pointer-events: none;
+    }
+    .candidate-application-hero-inner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+    }
+    .candidate-application-hero h2 { margin: 8px 0 10px; font-size: clamp(1.6rem, 2.4vw, 2.6rem); line-height:1.03; letter-spacing:-.05em; }
+    .candidate-application-hero p { margin:0; max-width:60ch; color: rgba(255,255,255,.84); line-height:1.65; }
+    .candidate-application-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.16);
+        font-size: .82rem;
+        font-weight: 600;
+    }
+    .candidate-application-kpi {
+        min-width: 220px;
+        padding: 15px 16px;
+        border-radius: 20px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.16);
+    }
+    .candidate-application-kpi strong { display:block; font-size:2rem; line-height:1; margin-bottom:4px; }
+    .candidate-application-kpi span { color: rgba(255,255,255,.82); font-size:.82rem; }
+</style>
+
+<section class="candidate-application-hero">
+    <div class="candidate-application-hero-inner">
+        <div>
+            <div class="badge badge-neutral" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.16);">Suivi candidat</div>
+            <h2>Vos candidatures dans un espace plus lisible et plus vivant.</h2>
+            <p>Retrouvez l’état de vos envois, les scores de compatibilité et les décisions reçues dans une vue qui met l’accent sur la progression plutôt que sur la simple liste.</p>
+            <div class="candidate-application-pill">📨 Historique centralisé des candidatures</div>
+        </div>
+        <div class="candidate-application-kpi">
+            <strong>{{ candidatures|length }}</strong>
+            <span>candidatures suivies</span>
+        </div>
+    </div>
+</section>
+
 {% if candidatures|length == 0 %}
     <div class="card" style="padding:48px 24px;text-align:center;">
         <div style="font-size:2rem;margin-bottom:12px;">📭</div>

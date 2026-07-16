@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Candidature enregistrée{% endblock %}
+
+{% block body %}
+<div style="max-width:720px;margin:60px auto;text-align:center;">
+    <div style="padding:28px;border-radius:12px;border:1px solid var(--border);background:var(--surface);">
+        <h2>Merci — candidature reçue</h2>
+        <p style="color:var(--text-secondary)">Vous êtes bien inscrit à l'événement « {{ evenement.titre }} ».</p>
+        <p style="margin-top:14px;color:var(--text-secondary)">Vous allez être redirigé vers la liste des événements.</p>
+        <a href="{{ path('app_candidat_events') }}" class="btn btn-primary" style="margin-top:12px;">Retour aux événements</a>
+    </div>
+</div>
+
+{% block javascripts %}
+<script>
+    // auto-redirect after 2.5s
+    setTimeout(function(){ window.location.href = '{{ path('app_candidat_events') }}'; }, 2500);
+</script>
+{% endblock %}
+
+{% endblock %}

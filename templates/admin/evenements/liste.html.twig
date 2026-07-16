@@ -1,0 +1,204 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des événements{% endblock %}
+{% block page_title %}Tous les événements{% endblock %}
+{% block page_subtitle %}{{ evenements|length }} événement{{ evenements|length > 1 ? 's' : '' }} · Modération globale{% endblock %}
+
+{% block body %}
+
+<div style="position:relative;overflow:hidden;border-radius:24px;padding:22px 24px;margin-bottom:18px;background:linear-gradient(135deg, rgba(34,211,238,.10), rgba(139,92,246,.09) 55%, rgba(251,113,133,.08));border:1px solid rgba(148,163,184,.14);box-shadow:0 20px 50px rgba(2,6,23,.18);">
+    <div style="position:absolute;top:-70px;right:-30px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle, rgba(34,211,238,.18), rgba(34,211,238,0) 70%);"></div>
+    <div style="position:relative;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:end;">
+        <div></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <span class="badge badge-accent">{{ evenements|length }} événements</span>
+            <span class="badge badge-success">Archivage prioritaire</span>
+        </div>
+    </div>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+    <form method="get" class="search-bar" style="flex:1;min-width:320px;">
+        <div class="search-input-wrap">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" name="q" value="{{ filters.q }}" placeholder="Rechercher par titre, lieu ou entreprise...">
+        </div>
+        <select name="statut" class="filter-select" onchange="this.form.submit()">
+            <option value="">Tous les statuts</option>
+            <option value="active" {{ filters.statut == 'active' ? 'selected' : '' }}>Actifs</option>
+            <option value="annulee" {{ filters.statut == 'annulee' ? 'selected' : '' }}>Annulés</option>
+            <option value="archivee" {{ filters.statut == 'archivee' ? 'selected' : '' }}>Archivés</option>
+            <option value="terminee" {{ filters.statut == 'terminee' ? 'selected' : '' }}>Terminés</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+    </form>
+    <a href="{{ path('app_admin_evenements_new') }}" class="btn btn-primary">Ajouter un événement</a>
+</div>
+
+{% if evenements|length == 0 %}
+    <div class="card" style="padding:48px 24px;text-align:center;">Aucun événement trouvé.</div>
+{% else %}
+    <div class="card" style="overflow:auto;">
+        <table class="data-table">
+            <thead>
+                <tr><th>Événement</th><th>Entreprise</th><th>Début</th><th>Statut</th><th>Source</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for evenement in evenements %}
+                <tr>
+                    <td style="font-weight:600;min-width:220px;">
+                        {{ evenement.titre }}
+                        <div style="font-size:.74rem;color:var(--text-muted);margin-top:3px;">{{ evenement.isOnline ? 'En ligne' : (evenement.lieu ?: 'Présentiel') }}</div>
+                    </td>
+                    <td>
+                        {% if evenement.entreprise %}
+                            {{ evenement.entreprise.isAdmin ? 'MatchCV' : (evenement.entreprise.profilEntreprise ? evenement.entreprise.profilEntreprise.raisonSociale : evenement.entreprise.email) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td style="font-size:.82rem;color:var(--text-secondary);">{{ evenement.debutAt ? evenement.debutAt|date('d/m/Y H:i') : '—' }}</td>
+                    <td>
+                        {% if evenement.isAnnule %}<span class="badge badge-danger">Annulé</span>
+                        {% elseif evenement.isArchive %}<span class="badge badge-neutral">Archivé</span>
+                        {% elseif evenement.isTermine %}<span class="badge badge-warning">Terminé</span>
+                        {% else %}<span class="badge badge-success">Actif</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if evenement.entreprise and evenement.entreprise.isAdmin %}
+                            <span class="badge badge-neutral">Créé par admin</span>
+                        {% elseif evenement.entreprise and evenement.entreprise.isEntreprise %}
+                            <span class="badge badge-success">Entreprise</span>
+                        {% else %}
+                            <span class="badge badge-neutral">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            <a class="btn btn-secondary btn-sm" href="{{ path('app_admin_evenements_show', {id: evenement.id}) }}">Voir</a>
+                            <a class="btn btn-secondary btn-sm" href="{{ path('app_admin_evenements_edit', {id: evenement.id}) }}">Modifier</a>
+                            <button type="button" class="btn btn-sm btn-cancel-event" data-id="{{ evenement.id }}" data-titre="{{ evenement.titre|e('html_attr') }}" data-token="{{ csrf_token('admin_evenement_cancel_' ~ evenement.id) }}" style="background:rgba(245,158,11,.12);color:#b45309;">Annuler</button>
+                            <form method="post" action="{{ path('app_admin_evenements_archive', {id: evenement.id}) }}" style="display:inline;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('admin_evenement_archive_' ~ evenement.id) }}">
+                                <button type="submit" class="btn btn-sm" style="background:rgba(59,130,246,.12);color:#2563eb;" onclick="return confirm('Basculer le statut d\'archivage ?');">
+                                    {{ evenement.isArchive ? 'Désarchiver' : 'Archiver' }}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<div id="cancel-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:460px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Annuler cet événement</div>
+        <div id="cancel-modal-titre" style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;"></div>
+        <div class="form-group">
+            <label>Note d'annulation</label>
+            <textarea id="cancel-note" class="form-control" rows="3" placeholder="Optionnel"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="cancel-close" class="btn btn-secondary" style="flex:1;justify-content:center;">Fermer</button>
+            <button type="button" id="cancel-confirm" class="btn btn-warning" style="flex:1;justify-content:center;">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<div id="delete-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:460px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Supprimer cet événement</div>
+        <div id="delete-modal-titre" style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;"></div>
+        <div style="font-size:.78rem;color:var(--danger);margin-bottom:12px;">Les inscriptions liées seront supprimées définitivement.</div>
+        <div class="form-group">
+            <label>Motif de suppression</label>
+            <textarea id="delete-motif" class="form-control" rows="3"></textarea>
+        </div>
+        <div id="delete-error" style="display:none;color:var(--danger);font-size:.8rem;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="delete-cancel" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="delete-confirm" class="btn btn-danger" style="flex:1;justify-content:center;">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const cancelBackdrop = document.getElementById('cancel-modal-backdrop');
+    const cancelTitle = document.getElementById('cancel-modal-titre');
+    const cancelNote = document.getElementById('cancel-note');
+    const cancelConfirm = document.getElementById('cancel-confirm');
+    const cancelClose = document.getElementById('cancel-close');
+    const deleteBackdrop = document.getElementById('delete-modal-backdrop');
+    const deleteTitle = document.getElementById('delete-modal-titre');
+    const deleteMotif = document.getElementById('delete-motif');
+    const deleteError = document.getElementById('delete-error');
+    const deleteCancel = document.getElementById('delete-cancel');
+    const deleteConfirm = document.getElementById('delete-confirm');
+    let currentId = null;
+    let currentCancelToken = null;
+    let currentDeleteToken = null;
+
+    function buildAndSubmit(action, fields) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action;
+        const inputs = Object.keys(fields).map(function (key) {
+            return '<input type="hidden" name="' + key + '" value="' + String(fields[key]).replace(/"/g, '&quot;') + '">';
+        }).join('');
+        form.innerHTML = inputs;
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    document.querySelectorAll('.btn-cancel-event').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentId = btn.dataset.id;
+            currentCancelToken = btn.dataset.token;
+            cancelTitle.textContent = 'Événement : « ' + btn.dataset.titre + ' »';
+            cancelNote.value = '';
+            cancelBackdrop.style.display = 'flex';
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-event').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            currentId = btn.dataset.id;
+            currentDeleteToken = btn.dataset.token;
+            deleteTitle.textContent = 'Événement : « ' + btn.dataset.titre + ' »';
+            deleteMotif.value = ''; 
+            deleteError.style.display = 'none';
+            deleteBackdrop.style.display = 'flex';
+        });
+    });
+
+    cancelClose.addEventListener('click', function () { cancelBackdrop.style.display = 'none'; });
+    cancelBackdrop.addEventListener('click', function (e) { if (e.target === cancelBackdrop) cancelBackdrop.style.display = 'none'; });
+    cancelConfirm.addEventListener('click', function () {
+        buildAndSubmit('/admin/evenements/' + currentId + '/cancel', {
+            '_token': currentCancelToken,
+            'note': cancelNote.value.trim(),
+        });
+    });
+
+    deleteCancel.addEventListener('click', function () { deleteBackdrop.style.display = 'none'; });
+    deleteBackdrop.addEventListener('click', function (e) { if (e.target === deleteBackdrop) deleteBackdrop.style.display = 'none'; });
+    deleteConfirm.addEventListener('click', function () {
+        const motif = deleteMotif.value.trim();
+        if (motif === '') {
+            deleteError.textContent = 'Le motif est obligatoire.';
+            deleteError.style.display = 'block';
+            return;
+        }
+        buildAndSubmit('/admin/evenements/' + currentId + '/supprimer', {
+            '_token': currentDeleteToken,
+            'motif': motif,
+        });
+    });
+})();
+</script>
+
+{% endblock %}

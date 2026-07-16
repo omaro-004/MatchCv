@@ -6,6 +6,24 @@
 
 {% block body %}
 
+<div style="position:relative;overflow:hidden;border-radius:28px;padding:28px 28px 24px;margin-bottom:22px;background:linear-gradient(135deg, rgba(34,211,238,.16) 0%, rgba(139,92,246,.14) 45%, rgba(251,113,133,.10) 100%);border:1px solid rgba(255,255,255,.12);box-shadow:0 28px 60px rgba(2,6,23,.22);backdrop-filter:blur(18px);">
+    <div style="position:absolute;inset:auto -70px -90px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle, rgba(34,211,238,.24) 0%, rgba(34,211,238,0) 70%);"></div>
+    <div style="position:absolute;inset:-80px auto auto -90px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle, rgba(251,191,36,.14) 0%, rgba(251,191,36,0) 70%);"></div>
+    <div style="position:relative;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="max-width:760px;">
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.18);color:#e2e8f0;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#22d3ee,#8b5cf6);"></span>
+                Administration
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+            <a href="{{ path('app_admin_utilisateurs_liste') }}" class="btn btn-secondary">Utilisateurs</a>
+            <a href="{{ path('app_admin_offres_liste') }}" class="btn btn-secondary">Offres</a>
+            <a href="{{ path('app_admin_evenements_liste') }}" class="btn btn-primary">Événements</a>
+        </div>
+    </div>
+</div>
+
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-card-header">

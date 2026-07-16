@@ -172,12 +172,15 @@ class EvenementController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_entreprise_events_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Evenement $evenement): Response
+    public function show(Evenement $evenement, \App\Repository\EvenementApplicationRepository $appRepo): Response
     {
         $this->denyAccessUnlessOwner($evenement);
 
+        $participants = $appRepo->findBy(['evenement' => $evenement], ['createdAt' => 'ASC']);
+
         return $this->render('entreprise/events/show.html.twig', [
             'evenement' => $evenement,
+            'participants' => $participants,
         ]);
     }
 

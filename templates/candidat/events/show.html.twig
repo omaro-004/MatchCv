@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ evenement.titre }}{% endblock %}
+
+{% block stylesheets %}
+{{ include('entreprise/events/_form_styles.html.twig') }}
+<style>
+.candidate-event-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 30px;
+    padding: 24px;
+    margin-bottom: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(59,130,246,.92) 46%, rgba(249,115,22,.90));
+    box-shadow: 0 24px 48px rgba(15,23,42,.16);
+}
+.candidate-event-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,.14), transparent 30%), radial-gradient(circle at bottom left, rgba(255,255,255,.08), transparent 24%);
+    pointer-events: none;
+}
+.candidate-event-hero-inner { position: relative; z-index: 1; display:grid; grid-template-columns: minmax(0,1.3fr) minmax(260px,.7fr); gap:18px; align-items:start; }
+.candidate-event-hero h1 { margin:10px 0 12px; font-size: clamp(1.8rem, 3vw, 3rem); line-height:1.04; letter-spacing:-.05em; }
+.candidate-event-hero p { margin:0; color: rgba(255,255,255,.84); line-height:1.65; }
+.candidate-event-info { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+.candidate-event-info span { padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); color:#fff; }
+.candidate-event-feature { border-radius:24px; padding:18px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.16); backdrop-filter: blur(14px); }
+.candidate-event-panels { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
+.candidate-event-card{ background:var(--surface); border:1px solid var(--border); padding:18px; border-radius:24px; box-shadow:0 16px 40px rgba(15,23,42,.08); }
+.candidate-event-media{ border-radius:22px; overflow:hidden; height:360px; background:#f3f4f6 }
+.candidate-event-media img{ width:100%; height:100%; object-fit:cover }
+.candidate-event-apply{ border-radius:24px; border:1px solid var(--border); padding:18px; background:var(--surface); box-shadow:0 16px 40px rgba(15,23,42,.08); }
+@media (max-width: 980px) {
+    .candidate-event-hero-inner,
+    .candidate-event-panels { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="candidate-event-hero">
+    <div class="candidate-event-hero-inner">
+        <div>
+            <a href="{{ path('app_candidat_events') }}" style="color:rgba(255,255,255,.82);display:inline-flex;align-items:center;gap:6px;">← Retour aux événements</a>
+            <h1>{{ evenement.titre }}</h1>
+            <p>{{ evenement.description|slice(0,220) }}{% if evenement.description|length > 220 %}…{% endif %}</p>
+            <div class="candidate-event-info">
+                <span>🗓️ {{ evenement.debutAt ? evenement.debutAt.format('d M Y H:i') : '—' }}</span>
+                <span>⏳ {{ evenement.finAt ? evenement.finAt.format('d M Y H:i') : '—' }}</span>
+                <span>📍 {{ evenement.lieu ?: 'En ligne / Présentiel' }}</span>
+                <span>👥 {{ evenement.capacite ? evenement.capacite ~ ' places' : 'Illimité' }}</span>
+            </div>
+        </div>
+        <div class="candidate-event-feature">
+            <strong style="display:block;font-size:1.08rem;margin-bottom:8px;">Inscription rapide</strong>
+            <p>Postulez sans quitter la page et revenez au flux dès que votre demande est enregistrée.</p>
+        </div>
+    </div>
+</section>
+
+<div class="candidate-event-panels">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="candidate-event-card">
+            <div class="candidate-event-media">
+        {% if evenement.photo %}
+            <img src="/uploads/evenements/{{ evenement.photo }}" alt="{{ evenement.titre }}">
+        {% endif %}
+        </div>
+
+            <div style="margin-top:18px;color:var(--text-secondary);line-height:1.7">{{ evenement.description|nl2br }}</div>
+        </div>
+
+        <div class="candidate-event-apply">
+            <h3 style="margin-top:0">Postuler à cet événement</h3>
+            {% if is_granted('ROLE_CANDIDAT') %}
+                    {% if existingApplication %}
+                        <div style="color:var(--text-secondary);margin-bottom:8px;">✅ Vous êtes inscrit à cet événement.</div>
+                        <form method="post" action="{{ path('app_candidat_events_unregister', {id: evenement.id}) }}" onsubmit="return confirm('Voulez-vous vraiment vous désinscrire de cet événement ?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('evenement_unregister_' ~ evenement.id) }}">
+                            <button class="btn btn-danger">Se désinscrire</button>
+                            <a class="btn btn-secondary" href="{{ path('app_candidat_events') }}">Retour aux événements</a>
+                        </form>
+                    {% else %}
+                        {{ form_start(form) }}
+                        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+                            <button class="btn btn-primary">Postuler</button>
+                            <a class="btn btn-secondary" href="{{ path('app_candidat_events') }}">Annuler</a>
+                        </div>
+                        {{ form_end(form) }}
+                    {% endif %}
+            {% else %}
+                <p>Veuillez vous <a href="{{ path('app_login') }}">connecter</a> en tant que candidat pour postuler.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Confirmation modal shown when redirected with ?confirmed=1 #}
+    {% if app.request.query.get('confirmed') == '1' %}
+        <div id="confirm-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000;">
+            <div style="background:#fff;padding:22px;border-radius:10px;max-width:560px;text-align:center;">
+                <h3 style="margin-top:0">Candidature enregistrée</h3>
+                <p style="color:var(--text-secondary)">Votre inscription à « {{ evenement.titre }} » a bien été enregistrée.</p>
+                <a class="btn btn-primary" href="{{ path('app_candidat_events') }}" style="margin-top:12px;">Retour aux événements</a>
+            </div>
+        </div>
+        <script>
+            // auto-redirect after 2.5s as fallback
+            setTimeout(function(){ window.location.href = '{{ path('app_candidat_events') }}'; }, 2500);
+        </script>
+    {% endif %}
+</div>
+
+{% endblock %}

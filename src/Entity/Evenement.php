@@ -19,10 +19,10 @@ class Evenement
     private ?\App\Entity\User $entreprise = null;
 
     #[ORM\Column(type: 'string', length: 255)]
-    private string $titre;
+    private string $titre = '';
 
     #[ORM\Column(type: 'text')]
-    private string $description;
+    private string $description = '';
 
     #[ORM\Column(type: 'boolean')]
     private bool $isOnline = false;

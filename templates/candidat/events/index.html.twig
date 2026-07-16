@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Événements{% endblock %}
+
+{% block stylesheets %}
+{{ include('entreprise/events/_form_styles.html.twig') }}
+<style>
+.candidate-events-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 24px;
+    margin-bottom: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(59,130,246,.92) 46%, rgba(249,115,22,.88));
+    box-shadow: 0 24px 48px rgba(15,23,42,.16);
+}
+.candidate-events-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,.16), transparent 30%), radial-gradient(circle at bottom left, rgba(255,255,255,.08), transparent 24%);
+    pointer-events: none;
+}
+.candidate-events-hero-inner { position: relative; z-index: 1; display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; align-items:end; }
+.candidate-events-hero h1 { margin:8px 0 10px; font-size: clamp(1.7rem, 2.8vw, 2.8rem); letter-spacing:-.05em; line-height:1.04; }
+.candidate-events-hero p { margin:0; max-width:62ch; color: rgba(255,255,255,.84); line-height:1.66; }
+.candidate-events-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+.candidate-event-card { background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,247,237,.88)); border:1px solid rgba(148,163,184,.16); border-radius:24px; overflow:hidden; box-shadow:0 16px 40px rgba(15,23,42,.08); display:flex; flex-direction:column; text-decoration:none; color:inherit; }
+.candidate-event-media { height:180px; background:linear-gradient(135deg,#e2e8f0,#f8fafc); display:flex; align-items:center; justify-content:center; }
+.candidate-event-media img { width:100%; height:180px; object-fit:cover; }
+.candidate-event-body { padding:16px; flex:1; display:flex; flex-direction:column; gap:10px; }
+.candidate-event-title { font-weight:800; color:var(--text-primary); font-size:1.02rem; line-height:1.3; }
+.candidate-event-meta { color:var(--text-secondary); font-size:.9rem; }
+.candidate-event-cta { margin-top:auto; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+</style>
+{% endblock %}
+
+{% block body %}
+<section class="candidate-events-hero">
+    <div class="candidate-events-hero-inner">
+        <div>
+            <div class="badge badge-neutral" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.16);">Événements candidats</div>
+            <h1>Des événements plus immersifs pour repérer les meilleures opportunités.</h1>
+            <p>Chaque carte met en avant les repères utiles, les dates et le niveau d’ouverture pour rendre la navigation plus intuitive et plus attirante.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btn-secondary" href="{{ path('app_candidat_events') }}" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.18);">Actualiser</a>
+        </div>
+    </div>
+</section>
+
+<div class="candidate-events-grid">
+    {% for e in events %}
+        <article class="candidate-event-card">
+            <div class="candidate-event-media">
+                {% if e.photo %}
+                    <img src="/uploads/evenements/{{ e.photo }}" alt="{{ e.titre }}">
+                {% else %}
+                    <div style="color:#9ca3af">Aucune photo</div>
+                {% endif %}
+            </div>
+            <div class="candidate-event-body">
+                <div class="candidate-event-title">{{ e.titre }}</div>
+                <div class="candidate-event-meta">🗓️ {{ e.debutAt ? e.debutAt.format('d M Y H:i') : '—' }} · {{ e.lieu ?: 'En ligne / Présentiel' }}</div>
+                <div class="candidate-event-desc" style="color:var(--text-secondary);line-height:1.6;">{{ e.description|slice(0,160) }}{% if e.description|length > 160 %}…{% endif %}</div>
+                <div class="candidate-event-cta">
+                    <a class="btn btn-secondary" href="{{ path('app_candidat_events_show', {id: e.id}) }}">Détails & Postuler</a>
+                    <div style="margin-left:auto;color:var(--text-secondary)">{{ e.capacite ? e.capacite ~ ' places' : 'Illimité' }}</div>
+                </div>
+            </div>
+        </article>
+    {% else %}
+        <div class="evt-empty">
+            <div class="icon">🎪</div>
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">Aucun événement pour le moment</div>
+            <p>Vérifiez plus tard — les recruteurs n'ont pas encore publié d'événement.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{% if appliedEvents is defined and appliedEvents|length > 0 %}
+    <div style="margin-top:28px;">
+        <h2>Événements auxquels vous avez postulé</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:10px;">
+            {% for ae in appliedEvents %}
+                <div style="border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:10px;">
+                    <div style="font-weight:700">{{ ae.titre }}</div>
+                    <div style="color:var(--text-secondary);font-size:.9rem;margin-top:6px;">{{ ae.debutAt ? ae.debutAt.format('d M Y') : '—' }} · {{ ae.lieu ?: 'En ligne' }}</div>
+                    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;"> 
+                        <a class="btn btn-secondary btn-sm" href="{{ path('app_candidat_events_show', {id: ae.id}) }}">Voir</a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -93,4 +93,34 @@
     </div>
 </div>
 
+{% if participants is defined and participants|length > 0 %}
+    <div style="margin-top:18px;">
+        <h3>Participants ({{ participants|length }})</h3>
+        <div style="margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead style="background:var(--surface);">
+                    <tr style="text-align:left;font-weight:700;color:var(--text-secondary);font-size:.9rem;">
+                        <th style="padding:12px 16px;border-bottom:1px solid var(--border);">Nom</th>
+                        <th style="padding:12px 16px;border-bottom:1px solid var(--border);">Email</th>
+                        <th style="padding:12px 16px;border-bottom:1px solid var(--border);">Inscrit le</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in participants %}
+                        {% set user = p.getCandidat() %}
+                        {% set profil = user.getProfilCandidat() %}
+                        <tr>
+                            <td style="padding:12px 16px;border-bottom:1px solid var(--border);">{{ profil ? profil.getNomComplet() : user.getEmail() }}</td>
+                            <td style="padding:12px 16px;border-bottom:1px solid var(--border);">{{ user.getEmail() }}</td>
+                            <td style="padding:12px 16px;border-bottom:1px solid var(--border);">{{ p.getCreatedAt().format('d/m/Y H:i') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div style="margin-top:18px;color:var(--text-secondary);">Aucun participant pour le moment.</div>
+{% endif %}
+
 {% endblock %}

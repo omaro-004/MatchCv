@@ -6,6 +6,77 @@
 
 {% block body %}
 
+<style>
+    .candidate-detail-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        padding: 24px;
+        margin-bottom: 18px;
+        color: #fff;
+        background: linear-gradient(135deg, rgba(15,23,42,.96) 0%, rgba(30,41,59,.95) 38%, rgba(249,115,22,.9) 100%);
+        box-shadow: 0 24px 48px rgba(15,23,42,.16);
+    }
+    .candidate-detail-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,.12), transparent 30%), radial-gradient(circle at bottom left, rgba(59,130,246,.16), transparent 24%);
+        pointer-events: none;
+    }
+    .candidate-detail-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0,1.25fr) minmax(260px,.75fr);
+        gap: 18px;
+        align-items: start;
+    }
+    .candidate-detail-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.16);
+        font-size: .8rem;
+        font-weight: 600;
+    }
+    .candidate-detail-title {
+        margin: 12px 0 10px;
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        line-height: 1.04;
+        letter-spacing: -.05em;
+    }
+    .candidate-detail-meta { display:flex; flex-wrap:wrap; gap:10px; color: rgba(255,255,255,.84); }
+    .candidate-detail-meta span {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.12);
+    }
+    .candidate-detail-aside {
+        border-radius: 24px;
+        padding: 18px;
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.16);
+        backdrop-filter: blur(16px);
+    }
+    .candidate-detail-aside strong { display:block; font-size:1.1rem; margin-bottom:8px; }
+    .candidate-detail-aside p { margin:0; color: rgba(255,255,255,.84); line-height:1.6; }
+    .candidate-detail-panels {
+        display:grid;
+        grid-template-columns: minmax(0,1fr) 340px;
+        gap: 20px;
+        align-items:start;
+    }
+    @media (max-width: 980px) {
+        .candidate-detail-grid,
+        .candidate-detail-panels { grid-template-columns: 1fr; }
+    }
+</style>
+
 <div style="margin-bottom:16px;">
     <a href="{{ path('app_candidat_offres_liste') }}" style="color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;font-size:.82rem;">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7l-7 7 7 7"/></svg>
@@ -13,7 +84,26 @@
     </a>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+<section class="candidate-detail-hero">
+    <div class="candidate-detail-grid">
+        <div>
+            <div class="candidate-detail-eyebrow">{{ offre.typeContratLabel }} · {{ offre.modeTravailLabel }}</div>
+            <div class="candidate-detail-title">{{ offre.titre }}</div>
+            <div class="candidate-detail-meta">
+                <span>🏢 {{ entreprise.raisonSociale }}</span>
+                <span>📍 {{ offre.localisation }}</span>
+                {% if offre.salaire %}<span>💸 {{ offre.salaire|number_format(0, ',', ' ') }} €</span>{% endif %}
+                {% if offre.dateDebut %}<span>📅 Début {{ offre.dateDebut|date('d/m/Y') }}</span>{% endif %}
+            </div>
+        </div>
+        <div class="candidate-detail-aside">
+            <strong>Décision rapide</strong>
+            <p>Comparez les compétences, regardez la culture de l’entreprise et postulez directement depuis cette page.</p>
+        </div>
+    </div>
+</section>
+
+<div class="candidate-detail-panels">
 
     {# ── COLONNE PRINCIPALE ── #}
     <div style="display:flex;flex-direction:column;gap:16px;">

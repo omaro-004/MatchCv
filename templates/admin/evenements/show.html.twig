@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ evenement.titre }}{% endblock %}
+{% block page_title %}{{ evenement.titre }}{% endblock %}
+{% block page_subtitle %}Détail de l'événement{% endblock %}
+
+{% block body %}
+
+<div class="card" style="padding:24px;display:grid;gap:24px;">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+        <div>
+            <a href="{{ path('app_admin_evenements_liste') }}" style="color:var(--text-muted);display:inline-flex;align-items:center;gap:5px;font-size:.82rem;">
+                ← Retour aux événements
+            </a>
+            <h1 style="margin:10px 0 6px;">{{ evenement.titre }}</h1>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                {% if evenement.isOnline %}<span class="badge badge-success">En ligne</span>{% else %}<span class="badge badge-neutral">Présentiel</span>{% endif %}
+                {% if evenement.isAnnule %}<span class="badge badge-danger">Annulé</span>{% elseif evenement.isArchive %}<span class="badge badge-neutral">Archivé</span>{% elseif evenement.isTermine %}<span class="badge badge-warning">Terminé</span>{% else %}<span class="badge badge-success">Actif</span>{% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a class="btn btn-secondary" href="{{ path('app_admin_evenements_edit', {id: evenement.id}) }}">Modifier</a>
+            <form method="post" action="{{ path('app_admin_evenements_archive', {id: evenement.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_evenement_archive_' ~ evenement.id) }}">
+                <button type="submit" class="btn btn-secondary" onclick="return confirm('Basculer le statut d\'archivage ?');">{{ evenement.isArchive ? 'Désarchiver' : 'Archiver' }}</button>
+            </form>
+            <button type="button" class="btn btn-warning" id="open-cancel">Annuler</button>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:start;">
+        <div style="display:grid;gap:16px;">
+            {% if evenement.photo %}
+                <div style="border-radius:20px;overflow:hidden;max-height:360px;">
+                    <img src="/uploads/evenements/{{ evenement.photo }}" alt="{{ evenement.titre }}" style="width:100%;height:100%;object-fit:cover;display:block;">
+                </div>
+            {% endif %}
+
+            <div class="card" style="padding:18px;">
+                <div style="font-weight:700;margin-bottom:10px;">Description</div>
+                <div style="white-space:pre-line;color:var(--text-secondary);line-height:1.7;">{{ evenement.description }}</div>
+            </div>
+        </div>
+
+        <div style="display:grid;gap:16px;">
+            <div class="card" style="padding:18px;">
+                <div style="font-weight:700;margin-bottom:14px;">Informations</div>
+                <div class="evt-info-row"><div class="label">Entreprise</div><div class="value">{{ evenement.entreprise ? (evenement.entreprise.isAdmin ? 'MatchCV' : (evenement.entreprise.profilEntreprise ? evenement.entreprise.profilEntreprise.raisonSociale : evenement.entreprise.email)) : '—' }}</div></div>
+                <div class="evt-info-row"><div class="label">Format</div><div class="value">{{ evenement.isOnline ? 'En ligne' : 'Présentiel' }}</div></div>
+                {% if not evenement.isOnline %}
+                    <div class="evt-info-row"><div class="label">Lieu</div><div class="value">{{ evenement.lieu ?: 'Non renseigné' }}</div></div>
+                {% endif %}
+                <div class="evt-info-row"><div class="label">Début</div><div class="value">{{ evenement.debutAt ? evenement.debutAt|date('d/m/Y H:i') : '—' }}</div></div>
+                <div class="evt-info-row"><div class="label">Fin</div><div class="value">{{ evenement.finAt ? evenement.finAt|date('d/m/Y H:i') : '—' }}</div></div>
+                <div class="evt-info-row"><div class="label">Capacité</div><div class="value">{{ evenement.capacite ?: 'Illimitée' }}</div></div>
+                <div class="evt-info-row"><div class="label">Créé le</div><div class="value">{{ evenement.createdAt|date('d/m/Y H:i') }}</div></div>
+            </div>
+
+            {% if evenement.isAnnule and evenement.noteAnnulation %}
+                <div class="card" style="padding:18px;border-left:4px solid var(--danger);">
+                    <div style="font-weight:700;margin-bottom:6px;">Note d'annulation</div>
+                    <div style="color:var(--text-secondary);line-height:1.6;">{{ evenement.noteAnnulation }}</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="padding:18px;">
+        <div style="font-weight:700;margin-bottom:12px;">Participants</div>
+        {% if participants|length == 0 %}
+            <div style="color:var(--text-muted);">Aucun participant pour le moment.</div>
+        {% else %}
+            <table class="data-table">
+                <thead><tr><th>Nom du candidat</th><th>Email</th><th>Message</th><th>Inscrit le</th></tr></thead>
+                <tbody>
+                    {% for p in participants %}
+                        <tr>
+                            <td style="font-weight:600;">{{ p.candidat ? (p.candidat.profilCandidat ? p.candidat.profilCandidat.nomComplet : '—') : '—' }}</td>
+                            <td style="color:var(--text-secondary);">{{ p.candidat ? p.candidat.email : '—' }}</td>
+                            <td style="color:var(--text-secondary);">{{ p.message ?: '—' }}</td>
+                            <td style="font-size:.82rem;color:var(--text-secondary);">{{ p.createdAt|date('d/m/Y H:i') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+
+<div id="cancel-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+    <div class="card" style="max-width:460px;width:100%;padding:24px;">
+        <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">Annuler cet événement</div>
+        <div style="font-size:.84rem;color:var(--text-secondary);margin-bottom:18px;">Ajouter une note d'annulation si nécessaire.</div>
+        <div class="form-group">
+            <label>Note d'annulation</label>
+            <textarea id="cancel-note" class="form-control" rows="3" placeholder="Optionnel"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+            <button type="button" id="cancel-close" class="btn btn-secondary" style="flex:1;justify-content:center;">Annuler</button>
+            <button type="button" id="cancel-confirm" class="btn btn-warning" style="flex:1;justify-content:center;">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const cancelBackdrop = document.getElementById('cancel-modal-backdrop');
+    const cancelNote = document.getElementById('cancel-note');
+
+    document.getElementById('open-cancel').addEventListener('click', function () {
+        cancelNote.value = '';
+        cancelBackdrop.style.display = 'flex';
+    });
+
+    document.getElementById('cancel-close').addEventListener('click', function () { cancelBackdrop.style.display = 'none'; });
+    cancelBackdrop.addEventListener('click', function (e) { if (e.target === cancelBackdrop) cancelBackdrop.style.display = 'none'; });
+    document.getElementById('cancel-confirm').addEventListener('click', function () {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ path('app_admin_evenements_cancel', {id: evenement.id}) }}';
+        form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token("admin_evenement_cancel" ~ '_' ~ evenement.id) }}">'
+            + '<input type="hidden" name="note" value="' + cancelNote.value.replace(/"/g, '&quot;') + '">';
+        document.body.appendChild(form);
+        form.submit();
+    });
+})();
+</script>
+
+{% endblock %}
